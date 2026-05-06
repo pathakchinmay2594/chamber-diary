@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1419">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Chamber Diary</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230f1419'/%3E%3Ctext x='50' y='65' font-size='55' text-anchor='middle' fill='%23d4a574'%3E%E2%9A%96%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root{
+  --bg:#0f1419; --surface:#1a1f2e; --surface-2:#242b3d; --surface-3:#2e3650;
+  --gold:#d4a574; --gold-soft:#b8935f;
+  --ink:#e8e6e1; --ink-dim:#a0a4ad; --ink-faded:#6b7080;
+  --line:#2a3142;
+  --danger:#e07b6e; --success:#7eb892; --info:#7da9d4;
+  --display:'Cormorant Garamond',serif;
+  --body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{
+  font-family:var(--body);
+  background:var(--bg);color:var(--ink);
+  font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(circle at 10% 0%,rgba(212,165,116,0.06) 0%,transparent 40%),
+    radial-gradient(circle at 90% 100%,rgba(212,165,116,0.04) 0%,transparent 40%);
+  background-attachment:fixed;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#app{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
+
+.header{
+  background:rgba(26,31,46,0.95);
+  border-bottom:1px solid var(--line);
+  padding:18px 20px;display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+}
+.header .back{
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;flex-shrink:0;transition:all .2s;
+}
+.header .back:active{transform:scale(.92);background:var(--surface-3)}
+.header h1{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.2px;flex:1}
+.header .gear{background:transparent;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;padding:6px}
+
+.screen{display:none;flex:1;animation:fade .3s}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+#screen-login{display:none;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:30px}
+#screen-login.active{display:flex}
+.login-card{width:100%;max-width:340px;text-align:center}
+.crest{
+  width:78px;height:78px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold-soft));
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;font-size:38px;color:var(--surface);
+  box-shadow:0 10px 30px rgba(212,165,116,0.25);
+}
+.login-card h1{font-family:var(--display);font-size:34px;font-weight:600;letter-spacing:.5px;margin-bottom:6px}
+.login-card .subtitle{font-family:var(--display);font-style:italic;color:var(--gold);font-size:16px;letter-spacing:1.5px;margin-bottom:42px;text-transform:uppercase}
+.pin-display{display:flex;justify-content:center;gap:14px;margin-bottom:32px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--gold);transition:all .2s}
+.pin-dot.filled{background:var(--gold);box-shadow:0 0 12px rgba(212,165,116,0.5)}
+.pin-dot.error{border-color:var(--danger);background:var(--danger);animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.key{
+  aspect-ratio:1.4/1;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;color:var(--ink);font-size:24px;font-weight:300;
+  font-family:var(--body);cursor:pointer;transition:all .15s;
+}
+.key:active{background:var(--surface-2);transform:scale(.95);border-color:var(--gold)}
+.key.action{font-size:18px;color:var(--gold)}
+
+.greeting{padding:22px 20px 8px}
+.greeting .date{font-family:var(--display);font-style:italic;color:var(--gold);font-size:14px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.greeting h2{font-family:var(--display);font-weight:500;font-size:30px;line-height:1.1}
+.stats-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:16px 20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s}
+.stat:active{transform:scale(.96);border-color:var(--gold)}
+.stat .num{font-family:var(--display);font-size:28px;font-weight:600;color:var(--gold);line-height:1}
+.stat .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faded);margin-top:4px}
+.menu{padding:8px 20px 30px;display:flex;flex-direction:column;gap:12px}
+.menu-item{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px 20px;display:flex;align-items:center;gap:16px;
+  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.menu-item:active{transform:scale(.98)}
+.menu-item.alert{border-color:rgba(224,123,110,0.3)}
+.menu-icon{
+  width:46px;height:46px;border-radius:11px;
+  background:linear-gradient(135deg,rgba(212,165,116,0.15),rgba(212,165,116,0.05));
+  border:1px solid rgba(212,165,116,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--gold);flex-shrink:0;
+}
+.menu-item.alert .menu-icon{background:linear-gradient(135deg,rgba(224,123,110,0.15),rgba(224,123,110,0.05));border-color:rgba(224,123,110,0.3);color:var(--danger)}
+.menu-text{flex:1}
+.menu-text .t{font-family:var(--display);font-size:19px;font-weight:600}
+.menu-text .s{font-size:12px;color:var(--ink-faded);margin-top:2px}
+.menu-text .badge{display:inline-block;background:var(--danger);color:#fff;font-size:10px;padding:1px 7px;border-radius:8px;margin-left:6px;font-weight:600;font-family:var(--body)}
+.menu-arrow{color:var(--ink-faded);font-size:18px}
+
+.search-wrap{padding:14px 20px;position:sticky;top:73px;background:var(--bg);z-index:10}
+.search{
+  width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:12px 16px;color:var(--ink);
+  font-family:var(--body);font-size:14px;outline:none;
+}
+.search:focus{border-color:var(--gold)}
+
+.list{padding:0 20px 30px;display:flex;flex-direction:column;gap:10px}
+.case-card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:16px;cursor:pointer;
+  transition:all .2s;position:relative;
+}
+.case-card:active{transform:scale(.98);border-color:var(--gold)}
+.id-pill{
+  display:inline-block;background:rgba(212,165,116,0.15);
+  color:var(--gold);font-size:10px;font-weight:600;
+  letter-spacing:1px;text-transform:uppercase;
+  padding:3px 8px;border-radius:5px;
+}
+.tag-pill{
+  display:inline-block;font-size:10px;font-weight:600;
+  letter-spacing:1.2px;text-transform:uppercase;
+  padding:3px 8px;border-radius:5px;margin-bottom:8px;
+}
+.case-card .title{font-family:var(--display);font-size:17px;font-weight:600;line-height:1.25;margin:8px 0}
+.case-card .meta{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-dim)}
+.case-card .meta .row{display:flex;align-items:flex-start;gap:6px}
+.case-card .meta .lbl{color:var(--ink-faded);min-width:60px;flex-shrink:0}
+.case-card .next-date{
+  position:absolute;top:14px;right:14px;
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:8px;padding:4px 8px;font-size:11px;color:var(--gold);
+  font-family:var(--display);font-weight:600;
+}
+
+.date-pick{margin:14px 20px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
+.date-pick label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faded);margin-bottom:10px}
+.date-pick input{
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--ink);padding:10px 14px;border-radius:10px;
+  font-family:var(--body);font-size:15px;width:100%;
+  outline:none;text-align:center;color-scheme:dark;
+}
+.date-pick input:focus{border-color:var(--gold)}
+.date-quick{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.date-quick button{
+  background:var(--surface-2);border:1px solid var(--line);
+  color:var(--ink-dim);font-size:11px;padding:5px 10px;
+  border-radius:6px;cursor:pointer;font-family:var(--body);
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.date-quick button:active{background:var(--gold);color:var(--surface);border-color:var(--gold)}
+
+.detail-hero{background:linear-gradient(135deg,var(--surface),var(--surface-2));padding:24px 20px;border-bottom:1px solid var(--line)}
+.detail-hero h2{font-family:var(--display);font-size:24px;font-weight:600;line-height:1.2;margin:12px 0 8px}
+.detail-hero .court{color:var(--gold);font-family:var(--display);font-style:italic;font-size:15px}
+.field-grid{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:3px;border-bottom:1px dashed var(--line);padding-bottom:12px}
+.field:last-child{border:none}
+.field .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faded)}
+.field .val{font-size:15px;color:var(--ink);word-break:break-word}
+.field .val.gold{color:var(--gold);font-family:var(--display);font-size:18px;font-weight:600}
+.field a{color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold)}
+.section-title{font-family:var(--display);font-size:20px;font-weight:600;padding:20px 20px 10px;display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';width:24px;height:1.5px;background:var(--gold)}
+.section-title .count{background:var(--surface-2);color:var(--gold);font-size:11px;padding:2px 8px;border-radius:6px;font-family:var(--body);font-weight:600}
+
+.timeline{padding:0 20px 30px}
+.hearing{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:14px;margin-bottom:10px;
+  position:relative;padding-left:18px;
+}
+.hearing::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:var(--gold);border-radius:3px}
+.hearing.no-next::before{background:var(--danger)}
+.hearing .h-date{font-family:var(--display);font-size:14px;font-weight:600;color:var(--gold);margin-bottom:6px}
+.hearing .h-summary{font-size:14px;color:var(--ink);margin-bottom:8px;line-height:1.4}
+.hearing .h-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--ink-faded);padding-top:8px;border-top:1px dashed var(--line)}
+.hearing .h-meta strong{color:var(--ink-dim);font-weight:500}
+.hearing .h-next{display:inline-block;background:rgba(212,165,116,0.1);color:var(--gold);padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;margin-bottom:6px}
+.hearing .h-next.warn{background:rgba(224,123,110,0.15);color:var(--danger)}
+
+.empty{padding:60px 30px;text-align:center;color:var(--ink-faded)}
+.empty-icon{font-size:46px;margin-bottom:12px;opacity:.4}
+.empty .t{font-family:var(--display);font-size:18px;color:var(--ink-dim);margin-bottom:4px}
+.empty .s{font-size:13px}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:flex-end;z-index:100;backdrop-filter:blur(4px)}
+.modal.active{display:flex;animation:fade .2s}
+.modal-content{background:var(--surface);width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:24px 20px 30px;animation:slideUp .3s}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal h3{font-family:var(--display);font-size:22px;font-weight:600;margin-bottom:20px}
+.modal input{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);padding:12px 14px;border-radius:10px;font-family:var(--body);font-size:15px;outline:none;margin-bottom:14px}
+.modal input:focus{border-color:var(--gold)}
+.btn{width:100%;background:var(--gold);color:var(--surface);border:none;padding:14px;border-radius:10px;font-family:var(--body);font-weight:600;font-size:14px;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.secondary{background:var(--surface-2);color:var(--ink);margin-top:10px}
+.btn.danger{background:var(--surface-2);color:var(--danger);margin-top:10px}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--surface-3);border:1px solid var(--gold);color:var(--ink);padding:10px 18px;border-radius:10px;font-size:13px;z-index:200;display:none;box-shadow:0 10px 40px rgba(0,0,0,0.4)}
+.toast.show{display:block;animation:fade .3s}
+
+.error-banner{background:rgba(224,123,110,0.1);border:1px solid var(--danger);border-radius:10px;padding:14px;margin:14px 20px;font-size:13px;color:var(--danger)}
+.error-banner strong{display:block;margin-bottom:4px;font-family:var(--display);font-size:15px}
+
+#screen-pin{
+  display:none;align-items:center;justify-content:center;
+  min-height:100vh;flex-direction:column;padding:30px;
+}
+#screen-pin.active{display:flex}
+.pin-card{width:100%;max-width:340px;text-align:center}
+.crest{
+  width:78px;height:78px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold-soft));
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;font-size:38px;color:var(--surface);
+  box-shadow:0 10px 30px rgba(212,165,116,0.25);
+}
+.pin-card h1{font-family:var(--display);font-size:32px;font-weight:600;letter-spacing:.5px;margin-bottom:6px}
+.pin-card .sub{font-family:var(--display);font-style:italic;color:var(--gold);font-size:15px;letter-spacing:1.2px;margin-bottom:30px;text-transform:uppercase}
+.pin-input{
+  width:200px;background:var(--surface);border:2px solid var(--line);
+  color:var(--ink);padding:18px;border-radius:14px;
+  font-family:var(--body);font-size:30px;font-weight:600;
+  letter-spacing:14px;text-align:center;outline:none;
+  margin:0 auto 14px;display:block;
+}
+.pin-input:focus{border-color:var(--gold)}
+.pin-input.error{border-color:var(--danger);animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pin-hint{font-size:12px;color:var(--ink-faded);margin-top:14px;line-height:1.5}
+.pin-welcome{
+  background:rgba(212,165,116,0.08);border:1px solid var(--gold);
+  border-radius:10px;padding:14px;margin-top:14px;
+  font-family:var(--display);font-size:18px;color:var(--gold);
+  display:none;
+}
+.pin-welcome.show{display:block;animation:fade .3s}
+
+.user-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(212,165,116,0.1);border:1px solid rgba(212,165,116,0.3);
+  border-radius:20px;padding:5px 12px;
+  font-size:12px;color:var(--gold);
+  font-family:var(--body);
+}
+.user-chip .dot{width:6px;height:6px;background:var(--success);border-radius:50%}
+
+.locked-field{
+  background:var(--surface-3) !important;
+  border-color:var(--gold) !important;
+  color:var(--gold) !important;
+  cursor:not-allowed;
+}
+
+.update-btn{
+  width:100%;margin-top:12px;
+  background:linear-gradient(135deg,var(--gold),var(--gold-soft));
+  color:var(--surface);border:none;
+  padding:11px;border-radius:9px;
+  font-family:var(--body);font-weight:600;font-size:13px;
+  letter-spacing:0.5px;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;
+}
+.update-btn:active{transform:scale(.98)}
+
+.form-field{margin-bottom:14px}
+.form-field label{
+  display:block;font-size:11px;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--ink-faded);margin-bottom:6px;
+}
+.form-field input, .form-field textarea, .form-field select{
+  width:100%;background:var(--surface-2);border:1px solid var(--line);
+  color:var(--ink);padding:11px 14px;border-radius:9px;
+  font-family:var(--body);font-size:14px;outline:none;
+  color-scheme:dark;
+}
+.form-field input:focus, .form-field textarea:focus, .form-field select:focus{border-color:var(--gold)}
+.form-field textarea{resize:vertical;min-height:60px;font-family:var(--body)}
+.form-info{
+  background:rgba(212,165,116,0.08);border:1px solid rgba(212,165,116,0.3);
+  border-radius:8px;padding:10px 12px;margin-bottom:14px;
+  font-size:12px;color:var(--ink-dim);line-height:1.5;
+}
+.form-info strong{color:var(--gold);display:block;margin-bottom:2px;font-family:var(--display);font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="screen-pin">
+    <div class="pin-card">
+      <div class="crest">⚖</div>
+      <h1>Chamber Diary</h1>
+      <div class="sub">Enter Your PIN</div>
+      <input type="tel" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" id="pin-input" class="pin-input" placeholder="••••" autofocus>
+      <div class="pin-welcome" id="pin-welcome"></div>
+      <div class="pin-hint">
+        Each chamber member has a unique 4-digit code.<br>
+        Don't know yours? Ask the admin.
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-login" style="display:none"></div>
+
+  <div id="screen-home" class="screen">
+    <div class="header">
+      <div style="width:36px"></div>
+      <h1>Chamber Diary</h1>
+      <button class="gear" onclick="openSettings()">⚙</button>
+    </div>
+    <div class="greeting">
+      <div class="date" id="today-date">—</div>
+      <h2>Good <span id="greeting-time">day</span><span id="greeting-name"></span></h2>
+      <div style="margin-top:10px"><span class="user-chip" id="user-chip"><span class="dot"></span><span id="user-chip-name">—</span></span></div>
+    </div>
+    <div class="stats-strip">
+      <div class="stat" onclick="goCases()"><div class="num" id="stat-total">—</div><div class="lbl">Total Cases</div></div>
+      <div class="stat" onclick="goToday()"><div class="num" id="stat-today">—</div><div class="lbl">Today</div></div>
+      <div class="stat" onclick="goWeek()"><div class="num" id="stat-week">—</div><div class="lbl">This Week</div></div>
+    </div>
+    <div class="menu">
+      <div class="menu-item" onclick="goToday()">
+        <div class="menu-icon">☀</div>
+        <div class="menu-text"><div class="t">Today's Diary</div><div class="s">All hearings &amp; matters listed today</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item alert" onclick="goAction()">
+        <div class="menu-icon">⚠</div>
+        <div class="menu-text"><div class="t">Action Needed <span class="badge" id="action-count" style="display:none">0</span></div><div class="s">Past hearings missing next date</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goDateView()">
+        <div class="menu-icon">📅</div>
+        <div class="menu-text"><div class="t">Search by Date</div><div class="s">Pick any date — past or future</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goWeek()">
+        <div class="menu-icon">🗓</div>
+        <div class="menu-text"><div class="t">Week View</div><div class="s">Next 7 days at a glance</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="goCases()">
+        <div class="menu-icon">📋</div>
+        <div class="menu-text"><div class="t">All Cases</div><div class="s">Browse the full register</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="loadAll(true)">
+        <div class="menu-icon">↻</div>
+        <div class="menu-text"><div class="t">Refresh Data</div><div class="s">Pull latest from sheet</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+      <div class="menu-item" onclick="generatePendingPDF()">
+        <div class="menu-icon">🖨</div>
+        <div class="menu-text"><div class="t">Print Pending List (PDF)</div><div class="s">Today's cases + pending cases</div></div>
+        <div class="menu-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-cases" class="screen">
+    <div class="header">
+      <button class="back" onclick="goHome()">‹</button>
+      <h1>All Cases</h1>
+    </div>
+    <div class="search-wrap">
+      <input class="search" id="search-input" placeholder="Search title, client, court, ID..." oninput="renderCases()">
+    </div>
+    <div id="cases-list" class="list"></div>
+  </div>
+
+  <div id="screen-today" class="screen">
+    <div class="header">
+      <button class="back" onclick="goHome()">‹</button>
+      <h1>Today's Diary</h1>
+    </div>
+    <div id="today-content"></div>
+  </div>
+
+  <div id="screen-date" class="screen">
+    <div class="header">
+      <button class="back" onclick="goHome()">‹</button>
+      <h1 id="date-title">Date View</h1>
+    </div>
+    <div class="date-pick">
+      <label>Select date</label>
+      <input type="date" id="date-input" onchange="renderDateView()">
+      <div class="date-quick">
+        <button onclick="setDate(-1)">Yesterday</button>
+        <button onclick="setDate(0)">Today</button>
+        <button onclick="setDate(1)">Tomorrow</button>
+        <button onclick="setDate(7)">+1 Week</button>
+      </div>
+    </div>
+    <div id="date-list" class="list"></div>
+  </div>
+
+  <div id="screen-week" class="screen">
+    <div class="header">
+      <button class="back" onclick="goHome()">‹</button>
+      <h1>Week View</h1>
+    </div>
+    <div class="date-pick">
+      <label>Week starting</label>
+      <input type="date" id="week-input" onchange="renderWeek()">
+      <div class="date-quick">
+        <button onclick="setWeek(-7)">‹ Prev</button>
+        <button onclick="setWeek(0)">This Week</button>
+        <button onclick="setWeek(7)">Next ›</button>
+      </div>
+    </div>
+    <div id="week-content"></div>
+  </div>
+
+  <div id="screen-action" class="screen">
+    <div class="header">
+      <button class="back" onclick="goHome()">‹</button>
+      <h1>Action Needed</h1>
+    </div>
+    <div id="action-content" style="padding:14px 20px 30px"></div>
+  </div>
+
+  <div id="screen-detail" class="screen">
+    <div class="header">
+      <button class="back" onclick="backFromDetail()">‹</button>
+      <h1>Case Details</h1>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+
+</div>
+
+<div class="modal" id="update-modal">
+  <div class="modal-content">
+    <h3>Update Hearing</h3>
+    <div class="form-info" id="update-info"></div>
+    <div class="form-field">
+      <label>What happened (Order Summary)</label>
+      <textarea id="form-order" placeholder="e.g. cross of PW1, evidence, arguments..."></textarea>
+    </div>
+    <div class="form-field">
+      <label>Next Date</label>
+      <input type="date" id="form-next-date">
+    </div>
+    <div class="form-field">
+      <label>Who brought the date</label>
+      <input type="text" id="form-person" class="locked-field" readonly>
+    </div>
+    <button class="btn" id="form-submit-btn" onclick="submitUpdate()">Submit Update</button>
+    <button class="btn secondary" onclick="closeUpdateForm()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal" id="settings-modal">
+  <div class="modal-content">
+    <h3>Settings</h3>
+    <div class="form-info" style="margin-bottom:16px">
+      <strong>Logged in as</strong>
+      <div id="settings-user-name" style="color:var(--ink);font-size:15px;margin-top:4px"></div>
+    </div>
+    <div style="font-size:13px;color:var(--ink-dim);line-height:1.6;margin-bottom:18px">
+      Tap <strong>Refresh Data</strong> on the home screen to pull the latest changes from your sheet.
+    </div>
+    <button class="btn secondary" onclick="closeSettings()">Close</button>
+    <button class="btn danger" onclick="switchUser()">Switch User (Logout)</button>
+    <div style="text-align:center;margin-top:18px;font-size:11px;color:var(--ink-faded);font-style:italic;font-family:var(--display)">
+      Chamber Diary · v18
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SHEET_ID = '1lHqSC2J8CcyRxBrkOPmXSPu--lfG_1DsjYH0NRPDfi8';
+const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
+const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
+const CASES_RANGE = 'cases_master!A1:M1000';
+const HEARING_RANGE = 'hearing_log!A1:G1000';
+const APP_VERSION = 'v18';
+
+// Staff registry — each person has a unique 4-digit PIN
+const STAFF = [
+  { pin: '1001', name: 'Akash Pathak' },
+  { pin: '1002', name: 'Ashwani Mishra' },
+  { pin: '1003', name: 'Client' },
+  { pin: '1004', name: 'madhup gupta' },
+  { pin: '1005', name: 'maurya ji' },
+  { pin: '1006', name: 'Neeraj Pandey' },
+  { pin: '1007', name: 'Neeraj Shrivastava' },
+  { pin: '1008', name: 'rajeev gupta' },
+  { pin: '1009', name: 'Rama shanker Srivas' },
+  { pin: '1010', name: 'rishi' },
+  { pin: '1011', name: 'shubham shrivastav' },
+  { pin: '1012', name: 'prashant' },
+  { pin: '1013', name: 'yogesh' },
+  { pin: '1014', name: 'anishka' },
+  { pin: '1015', name: 'chinmay' }
+];
+
+function getCurrentUser(){
+  return localStorage.getItem('chamber_user') || '';
+}
+function setCurrentUser(name){
+  if(name) localStorage.setItem('chamber_user', name);
+  else localStorage.removeItem('chamber_user');
+}
+function findUserByPin(pin){
+  const found = STAFF.find(s => s.pin === pin);
+  return found ? found.name : null;
+}
+
+let CASES = [];
+let HEARINGS = [];
+let detailFromScreen = 'home';
+
+const $ = id => document.getElementById(id);
+const toast = msg => {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+};
+
+function parseDate(val){
+  if(val === null || val === undefined || val === '') return null;
+  if(val instanceof Date) return isNaN(val) ? null : val;
+  if(typeof val === 'number' && val > 0 && val < 100000){
+    const epoch = new Date(1899, 11, 30);
+    const d = new Date(epoch.getTime() + val * 86400000);
+    return isNaN(d) ? null : d;
+  }
+  const s = String(val).trim();
+  if(!s) return null;
+  const mk = (y, m, d) => {
+    if(y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+    const dt = new Date(y, m-1, d);
+    return (dt.getFullYear() === y && dt.getMonth() === m-1 && dt.getDate() === d) ? dt : null;
+  };
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+  if(m) return mk(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return mk(+m[3], +m[2], +m[1]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if(m) return mk(2000 + +m[3], +m[2], +m[1]);
+  m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if(m) return mk(+m[3], +m[2], +m[1]);
+  m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+  if(m) return mk(2000 + +m[3], +m[2], +m[1]);
+  m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if(m) return mk(+m[3], +m[2], +m[1]);
+  return null;
+}
+
+function fmtDate(val){
+  const d = parseDate(val);
+  if(!d) return val ? String(val) : '—';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtDateLong(d){
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+function toISODate(val){
+  const d = parseDate(val);
+  if(!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function escapeHTML(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtPhone(p){
+  if(!p) return '';
+  const s = String(p).replace(/[^\d]/g,'');
+  return s.length >= 10 ? s.slice(-10) : s;
+}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goHome(){ show('screen-home'); updateStats(); }
+function goCases(){ detailFromScreen = 'cases'; show('screen-cases'); $('search-input').value = ''; renderCases(); }
+function goToday(){
+  detailFromScreen = 'today';
+  show('screen-today');
+  renderToday();
+}
+function goDateView(){
+  detailFromScreen = 'date';
+  show('screen-date');
+  $('date-title').textContent = "Search by Date";
+  if(!$('date-input').value) $('date-input').value = todayISO();
+  renderDateView();
+}
+function goWeek(){
+  detailFromScreen = 'week';
+  show('screen-week');
+  // Default to today if no date selected
+  if(!$('week-input').value) $('week-input').value = todayISO();
+  renderWeek();
+}
+function setWeek(offset){
+  const cur = $('week-input').value || todayISO();
+  const d = new Date(cur);
+  d.setDate(d.getDate() + offset);
+  $('week-input').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  renderWeek();
+}
+function goAction(){ detailFromScreen = 'action'; show('screen-action'); renderAction(); }
+function backFromDetail(){
+  if(detailFromScreen === 'cases') show('screen-cases');
+  else if(detailFromScreen === 'today') show('screen-today');
+  else if(detailFromScreen === 'date') show('screen-date');
+  else if(detailFromScreen === 'week') show('screen-week');
+  else if(detailFromScreen === 'action') show('screen-action');
+  else goHome();
+}
+function setDate(offset){
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  $('date-input').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  renderDateView();
+}
+
+function updateGreeting(){
+  const h = new Date().getHours();
+  $('greeting-time').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  $('today-date').textContent = fmtDateLong(new Date()).toUpperCase();
+}
+
+async function loadAll(forceRefresh){
+  showLoadingOnHome();
+  const cachedVer = localStorage.getItem('cache_version');
+  if(cachedVer !== APP_VERSION){
+    localStorage.removeItem('cache_cases');
+    localStorage.removeItem('cache_hearings');
+    localStorage.setItem('cache_version', APP_VERSION);
+  }
+
+  try {
+    const [casesData, hearingsData] = await Promise.all([
+      fetchSheet(CASES_RANGE),
+      fetchSheet(HEARING_RANGE)
+    ]);
+    CASES = parseRows(casesData);
+    HEARINGS = parseRows(hearingsData);
+    syncFromHearings();
+    localStorage.setItem('cache_cases', JSON.stringify(CASES));
+    localStorage.setItem('cache_hearings', JSON.stringify(HEARINGS));
+    updateStats();
+    if(forceRefresh) toast('✓ Data refreshed');
+  } catch (err) {
+    console.error(err);
+    const cc = localStorage.getItem('cache_cases');
+    const ch = localStorage.getItem('cache_hearings');
+    if(cc && ch){
+      CASES = JSON.parse(cc); HEARINGS = JSON.parse(ch);
+      syncFromHearings();
+      updateStats();
+      toast('Offline — showing cached data');
+    } else {
+      showError(err.message);
+    }
+  }
+}
+
+async function fetchSheet(range){
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+  const res = await fetch(url, {cache: 'no-store'});
+  if(!res.ok){
+    let detail = '';
+    try { const j = await res.json(); detail = j.error?.message || ''; } catch(e){}
+    throw new Error(`Sheet load failed: ${res.status}${detail ? ' - ' + detail : ''}. Make sure sheet is "Anyone with link can view".`);
+  }
+  const data = await res.json();
+  return data.values || [];
+}
+
+function parseRows(values){
+  if(!values || values.length < 2) return [];
+  const headers = values[0].map(h => String(h).trim());
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    return obj;
+  }).filter(o => Object.values(o).some(v => v !== '' && v !== null && v !== undefined));
+}
+
+function syncFromHearings(){
+  const latest = {};
+  HEARINGS.forEach(h => {
+    const cid = String(h['Case ID'] || '').trim().toLowerCase();
+    if(!cid) return;
+    const hd = parseDate(h['Hearing Date']);
+    const nd = parseDate(h['Next Date']);
+    if(!hd || !nd) return;
+    if(!latest[cid] || hd > latest[cid]._hd){
+      latest[cid] = { ...h, _hd: hd, _nd: nd };
+    }
+  });
+  CASES.forEach(c => {
+    const cid = String(c['Case ID'] || '').trim().toLowerCase();
+    const l = latest[cid];
+    if(l){
+      const nd = l._nd;
+      c['Current Next Date'] = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
+      c['Latest Order Summary'] = l['Order Summary'] || c['Latest Order Summary'];
+    }
+  });
+}
+
+function showLoadingOnHome(){
+  ['stat-total','stat-today','stat-week'].forEach(id => $(id).textContent = '—');
+}
+
+function showError(msg){
+  const home = $('screen-home');
+  let banner = home.querySelector('.error-banner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.className = 'error-banner';
+    home.querySelector('.greeting').after(banner);
+  }
+  banner.innerHTML = `<strong>Could not load data</strong>${escapeHTML(msg)}`;
+}
+
+function updateStats(){
+  $('stat-total').textContent = CASES.length;
+  const today = todayISO();
+  const todayCases = new Set();
+  HEARINGS.forEach(h => {
+    if(toISODate(h['Hearing Date']) === today || toISODate(h['Next Date']) === today){
+      const cid = String(h['Case ID']||'').trim().toLowerCase();
+      if(cid) todayCases.add(cid);
+    }
+  });
+  $('stat-today').textContent = todayCases.size;
+
+  const end = new Date(); end.setDate(end.getDate() + 6);
+  const endISO = `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
+  const weekCount = CASES.filter(c => {
+    const iso = toISODate(c['Current Next Date']);
+    return iso && iso >= today && iso <= endISO;
+  }).length;
+  $('stat-week').textContent = weekCount;
+
+  const actionCount = countActionNeeded();
+  const badge = $('action-count');
+  if(actionCount > 0){
+    badge.textContent = actionCount;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Returns set of Case IDs (lowercase) that have any hearing log entry mentioning today
+function getCasesListedToday(){
+  const today = todayISO();
+  const cases = new Set();
+  HEARINGS.forEach(h => {
+    if(toISODate(h['Hearing Date']) === today || toISODate(h['Next Date']) === today){
+      const cid = String(h['Case ID']||'').trim().toLowerCase();
+      if(cid) cases.add(cid);
+    }
+  });
+  return cases;
+}
+
+// Returns array of {hearing, case} for pending cases EXCLUDING those listed today
+function getPendingCases(){
+  const todayCases = getCasesListedToday();
+  const latestByCase = {};
+  HEARINGS.forEach(h => {
+    const cid = String(h['Case ID']||'').trim().toLowerCase();
+    if(!cid) return;
+    const hd = parseDate(h['Hearing Date']);
+    if(!hd) return;
+    if(!latestByCase[cid] || hd > latestByCase[cid]._hd){
+      latestByCase[cid] = { ...h, _hd: hd };
+    }
+  });
+  
+  const pending = [];
+  Object.values(latestByCase).forEach(h => {
+    if(parseDate(h['Next Date'])) return; // has next date, skip
+    const cid = String(h['Case ID']).trim().toLowerCase();
+    if(todayCases.has(cid)) return; // already listed today, skip
+    const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === cid);
+    pending.push({ hearing: h, case: c });
+  });
+  pending.sort((a,b) => b.hearing._hd - a.hearing._hd);
+  return pending;
+}
+
+function countActionNeeded(){
+  return getPendingCases().length;
+}
+
+function renderCases(){
+  const q = ($('search-input').value || '').toLowerCase().trim();
+  const list = $('cases-list');
+  let filtered = CASES;
+  if(q) filtered = CASES.filter(c => Object.values(c).some(v => String(v).toLowerCase().includes(q)));
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="t">No cases found</div><div class="s">${q ? 'Try different search' : 'Sheet may be empty'}</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(c => caseCard(c)).join('');
+}
+
+function caseCard(c){
+  const id = escapeHTML(c['Case ID'] || '');
+  const title = escapeHTML(c['Case Title'] || 'Untitled Case');
+  const court = escapeHTML(c['Court'] || '');
+  const client = escapeHTML(c['Client Name'] || '');
+  const nextDate = c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '';
+  return `
+    <div class="case-card" onclick="openCase('${id}')">
+      ${nextDate ? `<div class="next-date">${escapeHTML(nextDate)}</div>` : ''}
+      <span class="id-pill">${id}</span>
+      <div class="title">${title}</div>
+      <div class="meta">
+        ${court ? `<div class="row"><span class="lbl">Court</span><span>${court}</span></div>` : ''}
+        ${client ? `<div class="row"><span class="lbl">Client</span><span>${client}</span></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderToday(){
+  const today = todayISO();
+  
+  // Find all hearing entries matching today (in HD or ND)
+  const rawEntries = [];
+  HEARINGS.forEach(h => {
+    const hdISO = toISODate(h['Hearing Date']);
+    const ndISO = toISODate(h['Next Date']);
+    if(hdISO === today || ndISO === today){
+      rawEntries.push({ hearing: h, matchType: hdISO === today ? 'held' : 'scheduled' });
+    }
+  });
+  
+  // Dedupe by Case ID, prefer 'held'
+  const byCaseId = {};
+  rawEntries.forEach(e => {
+    const cid = String(e.hearing['Case ID']||'').trim().toLowerCase();
+    if(!cid) return;
+    if(!byCaseId[cid]){
+      byCaseId[cid] = e;
+    } else if(byCaseId[cid].matchType === 'scheduled' && e.matchType === 'held'){
+      byCaseId[cid] = e;
+    }
+  });
+  const entries = Object.values(byCaseId);
+  
+  let html = '';
+  
+  if(entries.length === 0){
+    html = `<div class="empty"><div class="empty-icon">☀</div><div class="t">No matters listed today</div><div class="s">${fmtDate(today)}</div></div>`;
+    $('today-content').innerHTML = html;
+    return;
+  }
+  
+  entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+  
+  const heldCount = entries.filter(e => e.matchType === 'held').length;
+  const schedCount = entries.length - heldCount;
+  
+  html = `<div style="padding:14px 20px 10px;font-family:var(--display);font-size:14px;font-style:italic;color:var(--gold);text-align:center;line-height:1.6">
+    ${fmtDate(today)}<br>
+    <span style="font-size:11px;color:var(--ink-faded);font-style:normal;letter-spacing:1px;text-transform:uppercase">
+      ${entries.length} ${entries.length===1?'case':'cases'}${heldCount>0 && schedCount>0 ? ` · ${heldCount} held · ${schedCount} scheduled` : ''}
+    </span>
+  </div>`;
+  
+  html += '<div class="list">';
+  entries.forEach(e => {
+    const h = e.hearing;
+    const caseId = String(h['Case ID']||'').trim();
+    const entryId = h['Entry ID'] || '';
+    const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === caseId.toLowerCase());
+    const title = h['case title'] || c?.['Case Title'] || '(Untitled)';
+    const court = c?.['Court'] || '';
+    const order = h['Order Summary'] || '';
+    const person = h['Person Who Brought Date'] || '';
+    const nextOn = h['Next Date'] ? fmtDate(h['Next Date']) : '';
+    const heldOn = h['Hearing Date'] ? fmtDate(h['Hearing Date']) : '';
+    
+    const isHeld = e.matchType === 'held';
+    const tagColor = isHeld ? 'var(--gold)' : 'var(--info)';
+    const tagBg = isHeld ? 'rgba(212,165,116,0.15)' : 'rgba(125,169,212,0.15)';
+    const tagText = isHeld ? 'HEARING HELD' : 'SCHEDULED FOR TODAY';
+    const borderColor = isHeld ? 'var(--gold)' : 'var(--info)';
+    const hasNext = parseDate(h['Next Date']);
+    
+    html += `
+      <div class="case-card" style="border-left:3px solid ${borderColor}">
+        <div class="tag-pill" style="background:${tagBg};color:${tagColor}">${tagText}</div>
+        <span class="id-pill" style="margin-left:6px">${escapeHTML(caseId)} · ${escapeHTML(entryId)}</span>
+        <div class="title" onclick="openCase('${escapeHTML(caseId)}')" style="cursor:pointer">${escapeHTML(title)}</div>
+        <div class="meta" onclick="openCase('${escapeHTML(caseId)}')" style="cursor:pointer">
+          ${court ? `<div class="row"><span class="lbl">Court</span><span>${escapeHTML(court)}</span></div>` : ''}
+          ${isHeld
+            ? `<div class="row"><span class="lbl">Order</span><span style="color:var(--ink)">${escapeHTML(order || '—')}</span></div>
+               ${nextOn ? `<div class="row"><span class="lbl">Next</span><span style="color:var(--gold)">${escapeHTML(nextOn)}</span></div>` : '<div class="row"><span class="lbl">Next</span><span style="color:var(--danger)">⚠ Not set</span></div>'}`
+            : `<div class="row"><span class="lbl">From hrg</span><span>${escapeHTML(heldOn)}</span></div>
+               ${order ? `<div class="row"><span class="lbl">Last order</span><span>${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}`
+          }
+          ${person ? `<div class="row"><span class="lbl">By</span><span>${escapeHTML(person)}</span></div>` : ''}
+        </div>
+        <button class="update-btn" onclick="openUpdateForm('${escapeHTML(entryId)}','${escapeHTML(caseId)}','${escapeHTML(title).replace(/'/g,"\\'")}','${escapeHTML(heldOn)}')">${isHeld && hasNext ? '✎ Edit / Update Hearing' : '✎ Update This Hearing'}</button>
+      </div>
+    `;
+  });
+  html += '</div>';
+  
+  $('today-content').innerHTML = html;
+}
+
+function renderDateView(){
+  const date = $('date-input').value;
+  const list = $('date-list');
+  if(!date){ list.innerHTML = ''; return; }
+
+  // Collect all entries matching this date (in HD or ND)
+  const rawEntries = [];
+  HEARINGS.forEach(h => {
+    const hdISO = toISODate(h['Hearing Date']);
+    const ndISO = toISODate(h['Next Date']);
+    if(hdISO === date || ndISO === date){
+      rawEntries.push({ hearing: h, matchType: hdISO === date ? 'held' : 'scheduled' });
+    }
+  });
+
+  // DEDUPE by Case ID: if same case appears multiple times, prefer 'held' over 'scheduled'
+  const byCaseId = {};
+  rawEntries.forEach(e => {
+    const cid = String(e.hearing['Case ID']||'').trim().toLowerCase();
+    if(!cid) return;
+    if(!byCaseId[cid]){
+      byCaseId[cid] = e;
+    } else {
+      // already have one - prefer 'held' over 'scheduled'
+      if(byCaseId[cid].matchType === 'scheduled' && e.matchType === 'held'){
+        byCaseId[cid] = e;
+      }
+    }
+  });
+  const entries = Object.values(byCaseId);
+
+  if(entries.length === 0){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><div class="t">No matters on this date</div><div class="s">${fmtDate(date)}</div></div>`;
+    return;
+  }
+
+  entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+
+  const heldCount = entries.filter(e => e.matchType === 'held').length;
+  const schedCount = entries.length - heldCount;
+
+  let html = `<div style="padding:0 0 12px;font-family:var(--display);font-size:13px;font-style:italic;color:var(--gold);text-align:center;line-height:1.6">
+    ${fmtDate(date)}<br>
+    <span style="font-size:11px;color:var(--ink-faded);font-style:normal;letter-spacing:1px;text-transform:uppercase">
+      ${entries.length} ${entries.length===1?'case':'cases'}${heldCount>0 && schedCount>0 ? ` · ${heldCount} held · ${schedCount} scheduled` : ''}
+    </span>
+  </div>`;
+  entries.forEach(e => html += diaryCard(e.hearing, e.matchType));
+  list.innerHTML = html;
+}
+
+function diaryCard(h, type){
+  const caseId = String(h['Case ID']||'').trim();
+  const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === caseId.toLowerCase());
+  const title = h['case title'] || c?.['Case Title'] || '(Untitled)';
+  const court = c?.['Court'] || '';
+  const order = h['Order Summary'] || '';
+  const person = h['Person Who Brought Date'] || '';
+  const nextOn = h['Next Date'] ? fmtDate(h['Next Date']) : '';
+  const heldOn = h['Hearing Date'] ? fmtDate(h['Hearing Date']) : '';
+
+  const isHeld = type === 'held';
+  const tagColor = isHeld ? 'var(--gold)' : 'var(--info)';
+  const tagBg = isHeld ? 'rgba(212,165,116,0.15)' : 'rgba(125,169,212,0.15)';
+  const tagText = isHeld ? 'HEARING HELD' : 'SCHEDULED FOR THIS DATE';
+  const borderColor = isHeld ? 'var(--gold)' : 'var(--info)';
+
+  return `
+    <div class="case-card" onclick="openCase('${escapeHTML(caseId)}')" style="border-left:3px solid ${borderColor}">
+      <div class="tag-pill" style="background:${tagBg};color:${tagColor}">${tagText}</div>
+      <span class="id-pill" style="margin-left:6px">${escapeHTML(caseId)}</span>
+      <div class="title">${escapeHTML(title)}</div>
+      <div class="meta">
+        ${court ? `<div class="row"><span class="lbl">Court</span><span>${escapeHTML(court)}</span></div>` : ''}
+        ${isHeld
+          ? `<div class="row"><span class="lbl">Order</span><span style="color:var(--ink)">${escapeHTML(order || '—')}</span></div>
+             ${nextOn ? `<div class="row"><span class="lbl">Next</span><span style="color:var(--gold)">${escapeHTML(nextOn)}</span></div>` : '<div class="row"><span class="lbl">Next</span><span style="color:var(--danger)">⚠ Not set</span></div>'}`
+          : `<div class="row"><span class="lbl">From hrg</span><span>${escapeHTML(heldOn)}</span></div>
+             ${order ? `<div class="row"><span class="lbl">Last order</span><span>${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}`
+        }
+        ${person ? `<div class="row"><span class="lbl">By</span><span>${escapeHTML(person)}</span></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderWeek(){
+  const startStr = $('week-input').value || todayISO();
+  const startDate = new Date(startStr);
+  const days = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(startDate); d.setDate(startDate.getDate() + i);
+    days.push(d);
+  }
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let html = '';
+  days.forEach(day => {
+    const iso = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+
+    // Find raw entries
+    const raw = [];
+    HEARINGS.forEach(h => {
+      const hdISO = toISODate(h['Hearing Date']);
+      const ndISO = toISODate(h['Next Date']);
+      if(hdISO === iso || ndISO === iso){
+        raw.push({ hearing: h, matchType: hdISO === iso ? 'held' : 'scheduled' });
+      }
+    });
+    // Dedupe by Case ID, prefer 'held'
+    const byId = {};
+    raw.forEach(e => {
+      const cid = String(e.hearing['Case ID']||'').trim().toLowerCase();
+      if(!cid) return;
+      if(!byId[cid] || (byId[cid].matchType === 'scheduled' && e.matchType === 'held')){
+        byId[cid] = e;
+      }
+    });
+    const entries = Object.values(byId);
+
+    const isToday = iso === todayISO();
+
+    html += `<div style="padding:14px 20px 4px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line)">
+      <div style="font-family:var(--display);font-size:18px;font-weight:600;color:${isToday?'var(--gold)':'var(--ink)'}">
+        ${dayNames[day.getDay()]}, ${day.getDate()} ${months[day.getMonth()]}${isToday?' · Today':''}
+      </div>
+      <div style="font-size:11px;color:var(--ink-faded);text-transform:uppercase;letter-spacing:1px">${entries.length} ${entries.length===1?'case':'cases'}</div>
+    </div>`;
+
+    if(entries.length === 0){
+      html += `<div style="padding:0 20px 14px;color:var(--ink-faded);font-size:13px;font-style:italic">No matters listed</div>`;
+    } else {
+      entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+      html += `<div class="list" style="padding-top:6px;padding-bottom:14px">`;
+      entries.forEach(e => html += diaryCard(e.hearing, e.matchType));
+      html += `</div>`;
+    }
+  });
+  $('week-content').innerHTML = html;
+}
+
+function renderAction(){
+  const pending = getPendingCases();
+
+  let html = '';
+  if(pending.length === 0){
+    html = `<div class="empty"><div class="empty-icon">✓</div><div class="t" style="color:var(--success)">All caught up!</div><div class="s">No pending cases (excluding today's listings)</div></div>`;
+  } else {
+    html = `<div style="background:rgba(224,123,110,0.08);border:1px solid var(--danger);padding:14px;border-radius:12px;margin-bottom:16px;font-size:13px;color:var(--ink-dim)">
+      <strong style="color:var(--danger);font-family:var(--display);font-size:16px;display:block;margin-bottom:4px">⚠ ${pending.length} ${pending.length===1?'case needs':'cases need'} a next date</strong>
+      Cases listed today appear in Today's Diary instead. These are old hearings still pending.
+    </div>`;
+    pending.forEach(({hearing, case: c}) => {
+      const caseId = c?.['Case ID'] || hearing['Case ID'];
+      const entryId = hearing['Entry ID'] || '';
+      const title = c?.['Case Title'] || hearing['case title'] || '(case not found)';
+      const court = c?.['Court'] || '';
+      const lastDate = fmtDate(hearing['Hearing Date']);
+      const person = hearing['Person Who Brought Date'] || '—';
+      const order = hearing['Order Summary'] || '';
+      html += `
+        <div class="case-card" style="border-left:3px solid var(--danger)">
+          <div class="tag-pill" style="background:rgba(224,123,110,0.15);color:var(--danger)">NEXT DATE PENDING</div>
+          <span class="id-pill" style="margin-left:6px">${escapeHTML(caseId)} · ${escapeHTML(entryId)}</span>
+          <div class="title" onclick="openCase('${escapeHTML(caseId)}')" style="cursor:pointer">${escapeHTML(title)}</div>
+          <div class="meta" onclick="openCase('${escapeHTML(caseId)}')" style="cursor:pointer">
+            ${court ? `<div class="row"><span class="lbl">Court</span><span>${escapeHTML(court)}</span></div>` : ''}
+            <div class="row"><span class="lbl">Last hrg</span><span style="color:var(--gold)">${escapeHTML(lastDate)}</span></div>
+            <div class="row"><span class="lbl">Attended</span><span style="color:var(--ink)"><strong>${escapeHTML(person)}</strong></span></div>
+            ${order ? `<div class="row"><span class="lbl">Order</span><span>${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}
+          </div>
+          <button class="update-btn" onclick="openUpdateForm('${escapeHTML(entryId)}','${escapeHTML(caseId)}','${escapeHTML(title).replace(/'/g,"\\'")}','${escapeHTML(lastDate)}')">✎ Update This Hearing</button>
+        </div>
+      `;
+    });
+  }
+  $('action-content').innerHTML = html;
+}
+
+function openCase(id){
+  const c = CASES.find(x => String(x['Case ID']).trim() === String(id).trim());
+  if(!c){ toast('Case not found'); return; }
+  show('screen-detail');
+  renderDetail(c);
+}
+
+function renderDetail(c){
+  const cid = String(c['Case ID']).trim().toLowerCase();
+  const hearings = HEARINGS
+    .filter(h => String(h['Case ID']).trim().toLowerCase() === cid)
+    .sort((a,b) => {
+      const ad = toISODate(a['Hearing Date']) || '';
+      const bd = toISODate(b['Hearing Date']) || '';
+      return bd.localeCompare(ad);
+    });
+
+  const phone = fmtPhone(c['Phone Number']);
+  const fileLink = c['File Link'] && String(c['File Link']).trim();
+
+  const fields = [
+    ['Case Number', c['case number']],
+    ['Section', c['Section']],
+    ['Police Station', c['police station']],
+    ['Client Name', c['Client Name']],
+    ['Phone', phone ? `<a href="tel:${phone}">${phone}</a>` : ''],
+    ['Vakalatnama Lawyer', c['vakalatnama lawyer']],
+    ['First Date', c['First Date'] ? fmtDate(c['First Date']) : ''],
+    ['Current Next Date', c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '', 'gold'],
+    ['Latest Order', c['Latest Order Summary']],
+    ['File Link', fileLink ? `<a href="${escapeHTML(fileLink)}" target="_blank" rel="noopener">${escapeHTML(fileLink)}</a>` : ''],
+  ];
+
+  let html = `
+    <div class="detail-hero">
+      <span class="id-pill">${escapeHTML(c['Case ID'] || '')}</span>
+      <h2>${escapeHTML(c['Case Title'] || 'Untitled Case')}</h2>
+      <div class="court">${escapeHTML(c['Court'] || '')}</div>
+    </div>
+    <div class="field-grid">
+  `;
+  fields.forEach(([lbl, val, cls]) => {
+    if(!val || (typeof val === 'string' && !val.trim())) return;
+    html += `<div class="field"><div class="lbl">${escapeHTML(lbl)}</div><div class="val ${cls||''}">${val}</div></div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="section-title">Hearing History <span class="count">${hearings.length}</span></div>`;
+  if(hearings.length === 0){
+    html += `<div class="empty"><div class="empty-icon">📜</div><div class="t">No hearings logged yet</div><div class="s">Add an entry in hearing_log to begin tracking</div></div>`;
+  } else {
+    html += `<div class="timeline">`;
+    hearings.forEach(h => {
+      const hasNext = parseDate(h['Next Date']);
+      html += `
+        <div class="hearing${hasNext ? '' : ' no-next'}">
+          <div class="h-date">${escapeHTML(fmtDate(h['Hearing Date']))}</div>
+          ${hasNext
+            ? `<div class="h-next">Next: ${escapeHTML(fmtDate(h['Next Date']))}</div>`
+            : `<div class="h-next warn">⚠ Next date not set</div>`}
+          <div class="h-summary">${escapeHTML(h['Order Summary'] || '—')}</div>
+          ${h['Person Who Brought Date'] ? `<div class="h-meta"><span><strong>By:</strong> ${escapeHTML(h['Person Who Brought Date'])}</span></div>` : ''}
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+  $('detail-content').innerHTML = html;
+}
+
+function generatePendingPDF(){
+  if(!window.jspdf){
+    toast('PDF library not loaded — check internet');
+    return;
+  }
+  
+  // ===== TABLE A: Cases listed today =====
+  const today = todayISO();
+  const todayEntries = [];
+  const rawTodayMap = {};
+  
+  HEARINGS.forEach(h => {
+    const hdISO = toISODate(h['Hearing Date']);
+    const ndISO = toISODate(h['Next Date']);
+    const cid = String(h['Case ID']||'').trim().toLowerCase();
+    if(!cid) return;
+    if(hdISO === today || ndISO === today){
+      const matchType = hdISO === today ? 'held' : 'scheduled';
+      if(!rawTodayMap[cid] || (rawTodayMap[cid].matchType === 'scheduled' && matchType === 'held')){
+        rawTodayMap[cid] = { hearing: h, matchType };
+      }
+    }
+  });
+  
+  Object.values(rawTodayMap).forEach(e => {
+    const cid = String(e.hearing['Case ID']).trim().toLowerCase();
+    const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === cid);
+    todayEntries.push({ hearing: e.hearing, case: c });
+  });
+  
+  todayEntries.sort((a, b) => {
+    const ai = String(a.case?.['Case ID'] || a.hearing['Case ID'] || '').toLowerCase();
+    const bi = String(b.case?.['Case ID'] || b.hearing['Case ID'] || '').toLowerCase();
+    return ai.localeCompare(bi, undefined, {numeric:true});
+  });
+  
+  // ===== TABLE B: Pending cases (excluding today's) =====
+  const pendingCases = getPendingCases();
+  pendingCases.sort((a, b) => {
+    const ai = String(a.case?.['Case ID'] || a.hearing['Case ID'] || '').toLowerCase();
+    const bi = String(b.case?.['Case ID'] || b.hearing['Case ID'] || '').toLowerCase();
+    return ai.localeCompare(bi, undefined, {numeric:true});
+  });
+  
+  if(todayEntries.length === 0 && pendingCases.length === 0){
+    toast('Nothing to print — no today and no pending cases!');
+    return;
+  }
+  
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'legal' });
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const todayLong = fmtDateLong(new Date());
+    
+    let pageAdded = false;
+    
+    // ===== TABLE A — Today's Cases =====
+    if(todayEntries.length > 0){
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text("Chamber Diary — Today's Cases", pageWidth/2, 15, {align:'center'});
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Generated: ${todayLong}`, pageWidth/2, 22, {align:'center'});
+      doc.setFontSize(9);
+      doc.text(`${todayEntries.length} case${todayEntries.length!==1?'s':''} listed today · ${fmtDate(today)}`, pageWidth/2, 28, {align:'center'});
+      
+      const todayRows = todayEntries.map(({hearing, case: c}) => {
+        const caseId = c?.['Case ID'] || hearing['Case ID'] || '';
+        const court = c?.['Court'] ? String(c['Court']).trim() : '';
+        const title = c?.['Case Title'] ? String(c['Case Title']).trim() : '';
+        const fullName = court ? `${court} — ${title}` : title;
+        return [caseId, fullName, '', '', ''];
+      });
+      
+      doc.autoTable({
+        startY: 33,
+        head: [['Case ID', 'Court — Case Title', 'What Happened', 'Next Date', 'Who Brought']],
+        body: todayRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [212, 165, 116],
+          textColor: [26, 31, 46],
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 9,
+          cellPadding: 2,
+          minCellHeight: 10,
+          valign: 'middle'
+        },
+        columnStyles: {
+          0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 50 },
+          3: { cellWidth: 25, halign: 'center' },
+          4: { cellWidth: 32 }
+        },
+        margin: { top: 33, left: 10, right: 10 }
+      });
+      pageAdded = true;
+    }
+    
+    // ===== TABLE B — Pending Cases =====
+    if(pendingCases.length > 0){
+      if(pageAdded) doc.addPage();
+      
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('Chamber Diary — Pending Cases', pageWidth/2, 15, {align:'center'});
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Generated: ${todayLong}`, pageWidth/2, 22, {align:'center'});
+      doc.setFontSize(9);
+      doc.text(`${pendingCases.length} old hearing${pendingCases.length!==1?'s':''} still awaiting next date`, pageWidth/2, 28, {align:'center'});
+      
+      const pendingRows = pendingCases.map(({hearing, case: c}) => {
+        const caseId = c?.['Case ID'] || hearing['Case ID'] || '';
+        const court = c?.['Court'] ? String(c['Court']).trim() : '';
+        const title = c?.['Case Title'] ? String(c['Case Title']).trim() : '';
+        const fullName = court ? `${court} — ${title}` : title;
+        const lastDate = hearing['Hearing Date'] ? fmtDate(hearing['Hearing Date']) : '—';
+        return [caseId, fullName, lastDate, '', '', ''];
+      });
+      
+      doc.autoTable({
+        startY: 33,
+        head: [['Case ID', 'Court — Case Title', 'Last Date', 'What Happened', 'Next Date', 'Who Brought']],
+        body: pendingRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [224, 123, 110],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 8.5,
+          cellPadding: 2,
+          minCellHeight: 10,
+          valign: 'middle'
+        },
+        columnStyles: {
+          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 68 },
+          2: { cellWidth: 22, halign: 'center', fontSize: 8 },
+          3: { cellWidth: 42 },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 28 }
+        },
+        margin: { top: 33, left: 10, right: 10 }
+      });
+    }
+    
+    const fname = `chamber_diary_${todayISO()}.pdf`;
+    const totalCount = todayEntries.length + pendingCases.length;
+    
+    // Always download — most reliable across all browsers/devices
+    doc.save(fname);
+    toast(`✓ PDF saved (${totalCount} cases)`);
+    
+  } catch (err) {
+    console.error('PDF error:', err);
+    toast('PDF error: ' + (err.message || 'unknown'));
+  }
+}
+
+function openSettings(){ $('settings-modal').classList.add('active'); }
+function closeSettings(){ $('settings-modal').classList.remove('active'); }
+
+// ====== UPDATE FORM ======
+let currentUpdateEntry = null;
+
+function openUpdateForm(entryId, caseId, title, lastDate){
+  // Safety: must be logged in
+  const user = getCurrentUser();
+  if(!user){
+    toast('Please login first');
+    showLogin();
+    return;
+  }
+  
+  currentUpdateEntry = { entryId, caseId, title };
+  $('update-info').innerHTML = `
+    <strong>${escapeHTML(title)}</strong>
+    <div>Case: <strong style="color:var(--ink)">${escapeHTML(caseId)}</strong> · Entry: <strong style="color:var(--ink)">${escapeHTML(entryId)}</strong></div>
+    <div>Last hearing: ${escapeHTML(lastDate)}</div>
+  `;
+  // Reset form
+  $('form-order').value = '';
+  $('form-next-date').value = '';
+  // Auto-fill and lock person field with logged-in user
+  $('form-person').value = user;
+  $('form-next-date').min = todayISO();
+  
+  $('update-modal').classList.add('active');
+  setTimeout(() => $('form-order').focus(), 300);
+}
+
+function closeUpdateForm(){
+  $('update-modal').classList.remove('active');
+  currentUpdateEntry = null;
+}
+
+async function submitUpdate(){
+  if(!currentUpdateEntry){ toast('No entry selected'); return; }
+  
+  const orderSummary = $('form-order').value.trim();
+  const nextDate = $('form-next-date').value;
+  const person = $('form-person').value;
+  
+  // Validate
+  if(!orderSummary){ toast('Please enter what happened'); return; }
+  if(!nextDate){ toast('Please pick a next date'); return; }
+  if(!person){ toast('Please select who brought the date'); return; }
+  
+  const btn = $('form-submit-btn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Submitting...';
+  btn.disabled = true;
+  
+  const payload = {
+    entryId: currentUpdateEntry.entryId,
+    orderSummary: orderSummary,
+    nextDate: nextDate,
+    person: person
+  };
+  
+  try {
+    // Apps Script Web Apps need a special trick:
+    // We send as text/plain to avoid CORS preflight issues
+    const res = await fetch(UPDATER_URL, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    
+    const result = await res.json();
+    
+    if(result.success){
+      toast('✓ Updated! Refreshing data...');
+      closeUpdateForm();
+      // Reload data from sheet to reflect the change
+      await loadAll(false);
+      renderAction();
+      renderToday(); // refresh today's screen too in case it's open
+    } else {
+      toast('Error: ' + (result.error || 'Unknown error'));
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    console.error('Submit error:', err);
+    toast('Network error. Try again.');
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+updateGreeting();
+setInterval(updateGreeting, 60000);
+
+// ====== LOGIN FLOW ======
+function showLogin(){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-pin').classList.add('active');
+  $('pin-input').value = '';
+  $('pin-welcome').classList.remove('show');
+  setTimeout(() => $('pin-input').focus(), 200);
+}
+
+function showApp(){
+  $('screen-pin').classList.remove('active');
+  $('screen-home').classList.add('active');
+  updateUserChip();
+  loadAll();
+}
+
+function updateUserChip(){
+  const user = getCurrentUser();
+  if(user){
+    $('user-chip-name').textContent = user;
+    $('user-chip').style.display = 'inline-flex';
+    $('greeting-name').textContent = `, ${user.split(' ')[0]}`;
+    $('settings-user-name').textContent = user;
+  } else {
+    $('user-chip').style.display = 'none';
+    $('greeting-name').textContent = '';
+  }
+}
+
+function switchUser(){
+  if(!confirm('Switch user? You will need to enter PIN again.')) return;
+  setCurrentUser(null);
+  closeSettings();
+  showLogin();
+}
+
+// PIN input handler
+$('pin-input').addEventListener('input', function(e){
+  // strip non-digits
+  this.value = this.value.replace(/[^0-9]/g, '');
+  this.classList.remove('error');
+  if(this.value.length === 4){
+    const userName = findUserByPin(this.value);
+    if(userName){
+      $('pin-welcome').textContent = `Welcome, ${userName}`;
+      $('pin-welcome').classList.add('show');
+      setCurrentUser(userName);
+      setTimeout(() => showApp(), 800);
+    } else {
+      this.classList.add('error');
+      setTimeout(() => { this.value = ''; this.classList.remove('error'); }, 600);
+    }
+  }
+});
+
+// Decide what to show on app open
+if(getCurrentUser()){
+  // Already logged in
+  $('screen-home').classList.add('active');
+  updateUserChip();
+  loadAll();
+} else {
+  // First time — show PIN screen
+  showLogin();
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+  if('caches' in window){
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+}
+</script>
+</body>
+</html>
