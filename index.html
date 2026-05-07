@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
+ 
 <style>
 :root{
   --bg:#0f1419; --surface:#1a1f2e; --surface-2:#242b3d; --surface-3:#2e3650;
@@ -37,7 +37,7 @@ body{
   padding-bottom:env(safe-area-inset-bottom);
 }
 #app{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
-
+ 
 .header{
   background:rgba(26,31,46,0.95);
   border-bottom:1px solid var(--line);
@@ -53,11 +53,11 @@ body{
 .header .back:active{transform:scale(.92);background:var(--surface-3)}
 .header h1{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.2px;flex:1}
 .header .gear{background:transparent;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;padding:6px}
-
+ 
 .screen{display:none;flex:1;animation:fade .3s}
 .screen.active{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-
+ 
 #screen-login{display:none;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:30px}
 #screen-login.active{display:flex}
 .login-card{width:100%;max-width:340px;text-align:center}
@@ -83,7 +83,7 @@ body{
 }
 .key:active{background:var(--surface-2);transform:scale(.95);border-color:var(--gold)}
 .key.action{font-size:18px;color:var(--gold)}
-
+ 
 .greeting{padding:22px 20px 8px}
 .greeting .date{font-family:var(--display);font-style:italic;color:var(--gold);font-size:14px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
 .greeting h2{font-family:var(--display);font-weight:500;font-size:30px;line-height:1.1}
@@ -113,7 +113,7 @@ body{
 .menu-text .s{font-size:12px;color:var(--ink-faded);margin-top:2px}
 .menu-text .badge{display:inline-block;background:var(--danger);color:#fff;font-size:10px;padding:1px 7px;border-radius:8px;margin-left:6px;font-weight:600;font-family:var(--body)}
 .menu-arrow{color:var(--ink-faded);font-size:18px}
-
+ 
 .search-wrap{padding:14px 20px;position:sticky;top:73px;background:var(--bg);z-index:10}
 .search{
   width:100%;background:var(--surface);border:1px solid var(--line);
@@ -121,7 +121,7 @@ body{
   font-family:var(--body);font-size:14px;outline:none;
 }
 .search:focus{border-color:var(--gold)}
-
+ 
 .list{padding:0 20px 30px;display:flex;flex-direction:column;gap:10px}
 .case-card{
   background:var(--surface);border:1px solid var(--line);
@@ -150,7 +150,7 @@ body{
   border-radius:8px;padding:4px 8px;font-size:11px;color:var(--gold);
   font-family:var(--display);font-weight:600;
 }
-
+ 
 .date-pick{margin:14px 20px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
 .date-pick label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-faded);margin-bottom:10px}
 .date-pick input{
@@ -168,7 +168,7 @@ body{
   text-transform:uppercase;letter-spacing:0.5px;
 }
 .date-quick button:active{background:var(--gold);color:var(--surface);border-color:var(--gold)}
-
+ 
 .detail-hero{background:linear-gradient(135deg,var(--surface),var(--surface-2));padding:24px 20px;border-bottom:1px solid var(--line)}
 .detail-hero h2{font-family:var(--display);font-size:24px;font-weight:600;line-height:1.2;margin:12px 0 8px}
 .detail-hero .court{color:var(--gold);font-family:var(--display);font-style:italic;font-size:15px}
@@ -182,7 +182,7 @@ body{
 .section-title{font-family:var(--display);font-size:20px;font-weight:600;padding:20px 20px 10px;display:flex;align-items:center;gap:10px}
 .section-title::before{content:'';width:24px;height:1.5px;background:var(--gold)}
 .section-title .count{background:var(--surface-2);color:var(--gold);font-size:11px;padding:2px 8px;border-radius:6px;font-family:var(--body);font-weight:600}
-
+ 
 .timeline{padding:0 20px 30px}
 .hearing{
   background:var(--surface);border:1px solid var(--line);
@@ -197,12 +197,12 @@ body{
 .hearing .h-meta strong{color:var(--ink-dim);font-weight:500}
 .hearing .h-next{display:inline-block;background:rgba(212,165,116,0.1);color:var(--gold);padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;margin-bottom:6px}
 .hearing .h-next.warn{background:rgba(224,123,110,0.15);color:var(--danger)}
-
+ 
 .empty{padding:60px 30px;text-align:center;color:var(--ink-faded)}
 .empty-icon{font-size:46px;margin-bottom:12px;opacity:.4}
 .empty .t{font-family:var(--display);font-size:18px;color:var(--ink-dim);margin-bottom:4px}
 .empty .s{font-size:13px}
-
+ 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:flex-end;z-index:100;backdrop-filter:blur(4px)}
 .modal.active{display:flex;animation:fade .2s}
 .modal-content{background:var(--surface);width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:24px 20px 30px;animation:slideUp .3s}
@@ -214,13 +214,13 @@ body{
 .btn:active{transform:scale(.98)}
 .btn.secondary{background:var(--surface-2);color:var(--ink);margin-top:10px}
 .btn.danger{background:var(--surface-2);color:var(--danger);margin-top:10px}
-
+ 
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--surface-3);border:1px solid var(--gold);color:var(--ink);padding:10px 18px;border-radius:10px;font-size:13px;z-index:200;display:none;box-shadow:0 10px 40px rgba(0,0,0,0.4)}
 .toast.show{display:block;animation:fade .3s}
-
+ 
 .error-banner{background:rgba(224,123,110,0.1);border:1px solid var(--danger);border-radius:10px;padding:14px;margin:14px 20px;font-size:13px;color:var(--danger)}
 .error-banner strong{display:block;margin-bottom:4px;font-family:var(--display);font-size:15px}
-
+ 
 #screen-pin{
   display:none;align-items:center;justify-content:center;
   min-height:100vh;flex-direction:column;padding:30px;
@@ -254,7 +254,7 @@ body{
   display:none;
 }
 .pin-welcome.show{display:block;animation:fade .3s}
-
+ 
 .user-chip{
   display:inline-flex;align-items:center;gap:6px;
   background:rgba(212,165,116,0.1);border:1px solid rgba(212,165,116,0.3);
@@ -263,14 +263,14 @@ body{
   font-family:var(--body);
 }
 .user-chip .dot{width:6px;height:6px;background:var(--success);border-radius:50%}
-
+ 
 .locked-field{
   background:var(--surface-3) !important;
   border-color:var(--gold) !important;
   color:var(--gold) !important;
   cursor:not-allowed;
 }
-
+ 
 .update-btn{
   width:100%;margin-top:12px;
   background:linear-gradient(135deg,var(--gold),var(--gold-soft));
@@ -281,7 +281,7 @@ body{
   cursor:pointer;transition:all .2s;
 }
 .update-btn:active{transform:scale(.98)}
-
+ 
 .form-field{margin-bottom:14px}
 .form-field label{
   display:block;font-size:11px;text-transform:uppercase;
@@ -304,9 +304,9 @@ body{
 </style>
 </head>
 <body>
-
+ 
 <div id="app">
-
+ 
   <div id="screen-pin">
     <div class="pin-card">
       <div class="crest">⚖</div>
@@ -320,9 +320,9 @@ body{
       </div>
     </div>
   </div>
-
+ 
   <div id="screen-login" style="display:none"></div>
-
+ 
   <div id="screen-home" class="screen">
     <div class="header">
       <div style="width:36px"></div>
@@ -377,7 +377,7 @@ body{
       </div>
     </div>
   </div>
-
+ 
   <div id="screen-cases" class="screen">
     <div class="header">
       <button class="back" onclick="goHome()">‹</button>
@@ -388,7 +388,7 @@ body{
     </div>
     <div id="cases-list" class="list"></div>
   </div>
-
+ 
   <div id="screen-today" class="screen">
     <div class="header">
       <button class="back" onclick="goHome()">‹</button>
@@ -396,7 +396,7 @@ body{
     </div>
     <div id="today-content"></div>
   </div>
-
+ 
   <div id="screen-date" class="screen">
     <div class="header">
       <button class="back" onclick="goHome()">‹</button>
@@ -414,7 +414,7 @@ body{
     </div>
     <div id="date-list" class="list"></div>
   </div>
-
+ 
   <div id="screen-week" class="screen">
     <div class="header">
       <button class="back" onclick="goHome()">‹</button>
@@ -431,7 +431,7 @@ body{
     </div>
     <div id="week-content"></div>
   </div>
-
+ 
   <div id="screen-action" class="screen">
     <div class="header">
       <button class="back" onclick="goHome()">‹</button>
@@ -439,7 +439,7 @@ body{
     </div>
     <div id="action-content" style="padding:14px 20px 30px"></div>
   </div>
-
+ 
   <div id="screen-detail" class="screen">
     <div class="header">
       <button class="back" onclick="backFromDetail()">‹</button>
@@ -447,9 +447,9 @@ body{
     </div>
     <div id="detail-content"></div>
   </div>
-
+ 
 </div>
-
+ 
 <div class="modal" id="update-modal">
   <div class="modal-content">
     <h3>Update Hearing</h3>
@@ -470,7 +470,7 @@ body{
     <button class="btn secondary" onclick="closeUpdateForm()">Cancel</button>
   </div>
 </div>
-
+ 
 <div class="modal" id="settings-modal">
   <div class="modal-content">
     <h3>Settings</h3>
@@ -484,21 +484,21 @@ body{
     <button class="btn secondary" onclick="closeSettings()">Close</button>
     <button class="btn danger" onclick="switchUser()">Switch User (Logout)</button>
     <div style="text-align:center;margin-top:18px;font-size:11px;color:var(--ink-faded);font-style:italic;font-family:var(--display)">
-      Chamber Diary · v18
+      Chamber Diary · v19
     </div>
   </div>
 </div>
-
+ 
 <div class="toast" id="toast"></div>
-
+ 
 <script>
 const SHEET_ID = '1lHqSC2J8CcyRxBrkOPmXSPu--lfG_1DsjYH0NRPDfi8';
 const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
 const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
 const CASES_RANGE = 'cases_master!A1:M1000';
 const HEARING_RANGE = 'hearing_log!A1:G1000';
-const APP_VERSION = 'v18';
-
+const APP_VERSION = 'v19';
+ 
 // Staff registry — each person has a unique 4-digit PIN
 const STAFF = [
   { pin: '1001', name: 'Akash Pathak' },
@@ -517,7 +517,7 @@ const STAFF = [
   { pin: '1014', name: 'anishka' },
   { pin: '1015', name: 'chinmay' }
 ];
-
+ 
 function getCurrentUser(){
   return localStorage.getItem('chamber_user') || '';
 }
@@ -529,17 +529,17 @@ function findUserByPin(pin){
   const found = STAFF.find(s => s.pin === pin);
   return found ? found.name : null;
 }
-
+ 
 let CASES = [];
 let HEARINGS = [];
 let detailFromScreen = 'home';
-
+ 
 const $ = id => document.getElementById(id);
 const toast = msg => {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2200);
 };
-
+ 
 function parseDate(val){
   if(val === null || val === undefined || val === '') return null;
   if(val instanceof Date) return isNaN(val) ? null : val;
@@ -569,7 +569,7 @@ function parseDate(val){
   if(m) return mk(+m[3], +m[2], +m[1]);
   return null;
 }
-
+ 
 function fmtDate(val){
   const d = parseDate(val);
   if(!d) return val ? String(val) : '—';
@@ -599,7 +599,7 @@ function fmtPhone(p){
   const s = String(p).replace(/[^\d]/g,'');
   return s.length >= 10 ? s.slice(-10) : s;
 }
-
+ 
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $(id).classList.add('active');
@@ -648,13 +648,13 @@ function setDate(offset){
   $('date-input').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   renderDateView();
 }
-
+ 
 function updateGreeting(){
   const h = new Date().getHours();
   $('greeting-time').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
   $('today-date').textContent = fmtDateLong(new Date()).toUpperCase();
 }
-
+ 
 async function loadAll(forceRefresh){
   showLoadingOnHome();
   const cachedVer = localStorage.getItem('cache_version');
@@ -663,7 +663,7 @@ async function loadAll(forceRefresh){
     localStorage.removeItem('cache_hearings');
     localStorage.setItem('cache_version', APP_VERSION);
   }
-
+ 
   try {
     const [casesData, hearingsData] = await Promise.all([
       fetchSheet(CASES_RANGE),
@@ -690,7 +690,7 @@ async function loadAll(forceRefresh){
     }
   }
 }
-
+ 
 async function fetchSheet(range){
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
   const res = await fetch(url, {cache: 'no-store'});
@@ -702,7 +702,7 @@ async function fetchSheet(range){
   const data = await res.json();
   return data.values || [];
 }
-
+ 
 function parseRows(values){
   if(!values || values.length < 2) return [];
   const headers = values[0].map(h => String(h).trim());
@@ -712,7 +712,7 @@ function parseRows(values){
     return obj;
   }).filter(o => Object.values(o).some(v => v !== '' && v !== null && v !== undefined));
 }
-
+ 
 function syncFromHearings(){
   const latest = {};
   HEARINGS.forEach(h => {
@@ -735,11 +735,11 @@ function syncFromHearings(){
     }
   });
 }
-
+ 
 function showLoadingOnHome(){
   ['stat-total','stat-today','stat-week'].forEach(id => $(id).textContent = '—');
 }
-
+ 
 function showError(msg){
   const home = $('screen-home');
   let banner = home.querySelector('.error-banner');
@@ -750,7 +750,7 @@ function showError(msg){
   }
   banner.innerHTML = `<strong>Could not load data</strong>${escapeHTML(msg)}`;
 }
-
+ 
 function updateStats(){
   $('stat-total').textContent = CASES.length;
   const today = todayISO();
@@ -762,7 +762,7 @@ function updateStats(){
     }
   });
   $('stat-today').textContent = todayCases.size;
-
+ 
   const end = new Date(); end.setDate(end.getDate() + 6);
   const endISO = `${end.getFullYear()}-${String(end.getMonth()+1).padStart(2,'0')}-${String(end.getDate()).padStart(2,'0')}`;
   const weekCount = CASES.filter(c => {
@@ -770,7 +770,7 @@ function updateStats(){
     return iso && iso >= today && iso <= endISO;
   }).length;
   $('stat-week').textContent = weekCount;
-
+ 
   const actionCount = countActionNeeded();
   const badge = $('action-count');
   if(actionCount > 0){
@@ -780,7 +780,7 @@ function updateStats(){
     badge.style.display = 'none';
   }
 }
-
+ 
 // Returns set of Case IDs (lowercase) that have any hearing log entry mentioning today
 function getCasesListedToday(){
   const today = todayISO();
@@ -793,8 +793,18 @@ function getCasesListedToday(){
   });
   return cases;
 }
-
+ 
 // Returns array of {hearing, case} for pending cases EXCLUDING those listed today
+// Returns true if Next Date contains any text indicating the case is closed
+// (i.e. anything that's NOT a valid date and NOT empty)
+function isDisposed(nextDateValue){
+  if(!nextDateValue) return false; // empty = pending, not disposed
+  if(parseDate(nextDateValue)) return false; // valid date = active
+  // If it's text but not a parseable date → treated as disposed/closed
+  const s = String(nextDateValue).trim();
+  return s.length > 0;
+}
+ 
 function getPendingCases(){
   const todayCases = getCasesListedToday();
   const latestByCase = {};
@@ -810,7 +820,8 @@ function getPendingCases(){
   
   const pending = [];
   Object.values(latestByCase).forEach(h => {
-    if(parseDate(h['Next Date'])) return; // has next date, skip
+    if(parseDate(h['Next Date'])) return; // has valid next date, skip
+    if(isDisposed(h['Next Date'])) return; // disposed/closed, skip
     const cid = String(h['Case ID']).trim().toLowerCase();
     if(todayCases.has(cid)) return; // already listed today, skip
     const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === cid);
@@ -819,11 +830,11 @@ function getPendingCases(){
   pending.sort((a,b) => b.hearing._hd - a.hearing._hd);
   return pending;
 }
-
+ 
 function countActionNeeded(){
   return getPendingCases().length;
 }
-
+ 
 function renderCases(){
   const q = ($('search-input').value || '').toLowerCase().trim();
   const list = $('cases-list');
@@ -835,7 +846,7 @@ function renderCases(){
   }
   list.innerHTML = filtered.map(c => caseCard(c)).join('');
 }
-
+ 
 function caseCard(c){
   const id = escapeHTML(c['Case ID'] || '');
   const title = escapeHTML(c['Case Title'] || 'Untitled Case');
@@ -854,7 +865,7 @@ function caseCard(c){
     </div>
   `;
 }
-
+ 
 function renderToday(){
   const today = todayISO();
   
@@ -944,12 +955,12 @@ function renderToday(){
   
   $('today-content').innerHTML = html;
 }
-
+ 
 function renderDateView(){
   const date = $('date-input').value;
   const list = $('date-list');
   if(!date){ list.innerHTML = ''; return; }
-
+ 
   // Collect all entries matching this date (in HD or ND)
   const rawEntries = [];
   HEARINGS.forEach(h => {
@@ -959,7 +970,7 @@ function renderDateView(){
       rawEntries.push({ hearing: h, matchType: hdISO === date ? 'held' : 'scheduled' });
     }
   });
-
+ 
   // DEDUPE by Case ID: if same case appears multiple times, prefer 'held' over 'scheduled'
   const byCaseId = {};
   rawEntries.forEach(e => {
@@ -975,17 +986,17 @@ function renderDateView(){
     }
   });
   const entries = Object.values(byCaseId);
-
+ 
   if(entries.length === 0){
     list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><div class="t">No matters on this date</div><div class="s">${fmtDate(date)}</div></div>`;
     return;
   }
-
+ 
   entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
-
+ 
   const heldCount = entries.filter(e => e.matchType === 'held').length;
   const schedCount = entries.length - heldCount;
-
+ 
   let html = `<div style="padding:0 0 12px;font-family:var(--display);font-size:13px;font-style:italic;color:var(--gold);text-align:center;line-height:1.6">
     ${fmtDate(date)}<br>
     <span style="font-size:11px;color:var(--ink-faded);font-style:normal;letter-spacing:1px;text-transform:uppercase">
@@ -995,7 +1006,7 @@ function renderDateView(){
   entries.forEach(e => html += diaryCard(e.hearing, e.matchType));
   list.innerHTML = html;
 }
-
+ 
 function diaryCard(h, type){
   const caseId = String(h['Case ID']||'').trim();
   const c = CASES.find(x => String(x['Case ID']).trim().toLowerCase() === caseId.toLowerCase());
@@ -1005,13 +1016,13 @@ function diaryCard(h, type){
   const person = h['Person Who Brought Date'] || '';
   const nextOn = h['Next Date'] ? fmtDate(h['Next Date']) : '';
   const heldOn = h['Hearing Date'] ? fmtDate(h['Hearing Date']) : '';
-
+ 
   const isHeld = type === 'held';
   const tagColor = isHeld ? 'var(--gold)' : 'var(--info)';
   const tagBg = isHeld ? 'rgba(212,165,116,0.15)' : 'rgba(125,169,212,0.15)';
   const tagText = isHeld ? 'HEARING HELD' : 'SCHEDULED FOR THIS DATE';
   const borderColor = isHeld ? 'var(--gold)' : 'var(--info)';
-
+ 
   return `
     <div class="case-card" onclick="openCase('${escapeHTML(caseId)}')" style="border-left:3px solid ${borderColor}">
       <div class="tag-pill" style="background:${tagBg};color:${tagColor}">${tagText}</div>
@@ -1030,7 +1041,7 @@ function diaryCard(h, type){
     </div>
   `;
 }
-
+ 
 function renderWeek(){
   const startStr = $('week-input').value || todayISO();
   const startDate = new Date(startStr);
@@ -1041,11 +1052,11 @@ function renderWeek(){
   }
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
+ 
   let html = '';
   days.forEach(day => {
     const iso = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
-
+ 
     // Find raw entries
     const raw = [];
     HEARINGS.forEach(h => {
@@ -1065,16 +1076,16 @@ function renderWeek(){
       }
     });
     const entries = Object.values(byId);
-
+ 
     const isToday = iso === todayISO();
-
+ 
     html += `<div style="padding:14px 20px 4px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line)">
       <div style="font-family:var(--display);font-size:18px;font-weight:600;color:${isToday?'var(--gold)':'var(--ink)'}">
         ${dayNames[day.getDay()]}, ${day.getDate()} ${months[day.getMonth()]}${isToday?' · Today':''}
       </div>
       <div style="font-size:11px;color:var(--ink-faded);text-transform:uppercase;letter-spacing:1px">${entries.length} ${entries.length===1?'case':'cases'}</div>
     </div>`;
-
+ 
     if(entries.length === 0){
       html += `<div style="padding:0 20px 14px;color:var(--ink-faded);font-size:13px;font-style:italic">No matters listed</div>`;
     } else {
@@ -1086,10 +1097,10 @@ function renderWeek(){
   });
   $('week-content').innerHTML = html;
 }
-
+ 
 function renderAction(){
   const pending = getPendingCases();
-
+ 
   let html = '';
   if(pending.length === 0){
     html = `<div class="empty"><div class="empty-icon">✓</div><div class="t" style="color:var(--success)">All caught up!</div><div class="s">No pending cases (excluding today's listings)</div></div>`;
@@ -1124,14 +1135,14 @@ function renderAction(){
   }
   $('action-content').innerHTML = html;
 }
-
+ 
 function openCase(id){
   const c = CASES.find(x => String(x['Case ID']).trim() === String(id).trim());
   if(!c){ toast('Case not found'); return; }
   show('screen-detail');
   renderDetail(c);
 }
-
+ 
 function renderDetail(c){
   const cid = String(c['Case ID']).trim().toLowerCase();
   const hearings = HEARINGS
@@ -1141,10 +1152,10 @@ function renderDetail(c){
       const bd = toISODate(b['Hearing Date']) || '';
       return bd.localeCompare(ad);
     });
-
+ 
   const phone = fmtPhone(c['Phone Number']);
   const fileLink = c['File Link'] && String(c['File Link']).trim();
-
+ 
   const fields = [
     ['Case Number', c['case number']],
     ['Section', c['Section']],
@@ -1157,7 +1168,7 @@ function renderDetail(c){
     ['Latest Order', c['Latest Order Summary']],
     ['File Link', fileLink ? `<a href="${escapeHTML(fileLink)}" target="_blank" rel="noopener">${escapeHTML(fileLink)}</a>` : ''],
   ];
-
+ 
   let html = `
     <div class="detail-hero">
       <span class="id-pill">${escapeHTML(c['Case ID'] || '')}</span>
@@ -1171,7 +1182,7 @@ function renderDetail(c){
     html += `<div class="field"><div class="lbl">${escapeHTML(lbl)}</div><div class="val ${cls||''}">${val}</div></div>`;
   });
   html += `</div>`;
-
+ 
   html += `<div class="section-title">Hearing History <span class="count">${hearings.length}</span></div>`;
   if(hearings.length === 0){
     html += `<div class="empty"><div class="empty-icon">📜</div><div class="t">No hearings logged yet</div><div class="s">Add an entry in hearing_log to begin tracking</div></div>`;
@@ -1179,12 +1190,15 @@ function renderDetail(c){
     html += `<div class="timeline">`;
     hearings.forEach(h => {
       const hasNext = parseDate(h['Next Date']);
+      const disposed = !hasNext && isDisposed(h['Next Date']);
       html += `
         <div class="hearing${hasNext ? '' : ' no-next'}">
           <div class="h-date">${escapeHTML(fmtDate(h['Hearing Date']))}</div>
           ${hasNext
             ? `<div class="h-next">Next: ${escapeHTML(fmtDate(h['Next Date']))}</div>`
-            : `<div class="h-next warn">⚠ Next date not set</div>`}
+            : disposed
+              ? `<div class="h-next" style="background:rgba(126,184,146,0.15);color:var(--success)">✓ ${escapeHTML(h['Next Date'])}</div>`
+              : `<div class="h-next warn">⚠ Next date not set</div>`}
           <div class="h-summary">${escapeHTML(h['Order Summary'] || '—')}</div>
           ${h['Person Who Brought Date'] ? `<div class="h-meta"><span><strong>By:</strong> ${escapeHTML(h['Person Who Brought Date'])}</span></div>` : ''}
         </div>
@@ -1194,7 +1208,7 @@ function renderDetail(c){
   }
   $('detail-content').innerHTML = html;
 }
-
+ 
 function generatePendingPDF(){
   if(!window.jspdf){
     toast('PDF library not loaded — check internet');
@@ -1368,13 +1382,13 @@ function generatePendingPDF(){
     toast('PDF error: ' + (err.message || 'unknown'));
   }
 }
-
+ 
 function openSettings(){ $('settings-modal').classList.add('active'); }
 function closeSettings(){ $('settings-modal').classList.remove('active'); }
-
+ 
 // ====== UPDATE FORM ======
 let currentUpdateEntry = null;
-
+ 
 function openUpdateForm(entryId, caseId, title, lastDate){
   // Safety: must be logged in
   const user = getCurrentUser();
@@ -1400,12 +1414,12 @@ function openUpdateForm(entryId, caseId, title, lastDate){
   $('update-modal').classList.add('active');
   setTimeout(() => $('form-order').focus(), 300);
 }
-
+ 
 function closeUpdateForm(){
   $('update-modal').classList.remove('active');
   currentUpdateEntry = null;
 }
-
+ 
 async function submitUpdate(){
   if(!currentUpdateEntry){ toast('No entry selected'); return; }
   
@@ -1463,10 +1477,10 @@ async function submitUpdate(){
     btn.disabled = false;
   }
 }
-
+ 
 updateGreeting();
 setInterval(updateGreeting, 60000);
-
+ 
 // ====== LOGIN FLOW ======
 function showLogin(){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1475,14 +1489,14 @@ function showLogin(){
   $('pin-welcome').classList.remove('show');
   setTimeout(() => $('pin-input').focus(), 200);
 }
-
+ 
 function showApp(){
   $('screen-pin').classList.remove('active');
   $('screen-home').classList.add('active');
   updateUserChip();
   loadAll();
 }
-
+ 
 function updateUserChip(){
   const user = getCurrentUser();
   if(user){
@@ -1495,14 +1509,14 @@ function updateUserChip(){
     $('greeting-name').textContent = '';
   }
 }
-
+ 
 function switchUser(){
   if(!confirm('Switch user? You will need to enter PIN again.')) return;
   setCurrentUser(null);
   closeSettings();
   showLogin();
 }
-
+ 
 // PIN input handler
 $('pin-input').addEventListener('input', function(e){
   // strip non-digits
@@ -1521,7 +1535,7 @@ $('pin-input').addEventListener('input', function(e){
     }
   }
 });
-
+ 
 // Decide what to show on app open
 if(getCurrentUser()){
   // Already logged in
@@ -1532,7 +1546,7 @@ if(getCurrentUser()){
   // First time — show PIN screen
   showLogin();
 }
-
+ 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
   if('caches' in window){
@@ -1542,3 +1556,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+ 
