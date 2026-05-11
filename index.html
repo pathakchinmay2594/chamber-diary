@@ -411,6 +411,10 @@ a{color:var(--primary);text-decoration:none}
 .case-card.scheduled{
   border-left:4px solid var(--secondary);
 }
+.case-card.favorite{
+  border-left:4px solid var(--warning);
+  background:linear-gradient(to right, #fef9ec 0%, var(--surface-container-low) 32%);
+}
 .case-card .head{
   display:flex;justify-content:space-between;align-items:flex-start;
   gap:10px;margin-bottom:10px;
@@ -429,10 +433,29 @@ a{color:var(--primary);text-decoration:none}
 .pill-held{background:var(--primary-container);color:var(--on-primary-container)}
 .pill-scheduled{background:var(--surface-container-high);color:var(--on-surface-variant)}
 .pill-urgent{background:var(--error-container);color:var(--on-error-container)}
+.pill-fav{background:var(--warning-container);color:var(--on-warning-container)}
 .pill-overdue{
   background:var(--error);color:#fff;
   font-size:9.5px;
 }
+.fav-btn{
+  width:34px;height:34px;
+  border:1px solid var(--outline-variant);
+  border-radius:50%;
+  background:#fff;
+  color:var(--outline);
+  font-size:18px;
+  line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:all 0.15s;
+}
+.fav-btn.active{
+  background:var(--warning-container);
+  border-color:rgba(148,104,0,0.25);
+  color:var(--warning);
+}
+.fav-btn:active{transform:scale(0.94)}
 .case-card h3{
   font-family:var(--display);
   font-size:18px;font-weight:600;
@@ -924,6 +947,28 @@ a{color:var(--primary);text-decoration:none}
   font-weight:600;
   color:var(--primary);
 }
+.review-fab{
+  position:fixed;
+  top:max(76px, calc(env(safe-area-inset-top) + 64px));
+  left:max(10px, calc((100vw - 480px) / 2 + 10px));
+  z-index:120;
+  min-width:78px;
+  height:36px;
+  border:none;
+  border-radius:18px;
+  background:var(--tertiary);
+  color:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 12px;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:0.2px;
+  box-shadow:var(--shadow);
+}
+.review-fab:active{transform:scale(0.96)}
 
 .btn{
   width:100%;
@@ -1260,6 +1305,26 @@ a{color:var(--primary);text-decoration:none}
 
 </div>
 
+<button class="review-fab" id="review-fab" onclick="openReviewModal()" title="Add review">Review</button>
+
+<!-- ======= REVIEW MODAL ======= -->
+<div class="modal" id="review-modal">
+  <div class="modal-content">
+    <h3>My Review</h3>
+    <div class="modal-sub">Saved in your row in the users sheet.</div>
+    <div class="form-info" style="border-left-color:var(--tertiary);background:var(--surface-container-low)">
+      <div class="case-title" id="review-user-name">—</div>
+      <div class="meta-line">This note belongs to your login.</div>
+    </div>
+    <div class="form-field">
+      <label>Review</label>
+      <textarea id="review-text" placeholder="Write your review or note..."></textarea>
+    </div>
+    <button class="btn" id="review-submit-btn" onclick="submitReview()">Save Review</button>
+    <button class="btn secondary" onclick="closeReviewModal()">Cancel</button>
+  </div>
+</div>
+
 <!-- ======= UPDATE FORM MODAL ======= -->
 <div class="modal" id="update-modal">
   <div class="modal-content">
@@ -1373,7 +1438,7 @@ const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
 const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
 const CASES_RANGE = 'cases_master!A1:M1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
-const USERS_RANGE = 'users!A1:B100';
+const USERS_RANGE = 'users!A1:C100';
 const APP_VERSION = 'v21';
 
 /* ======================================
@@ -1396,7 +1461,8 @@ let STAFF = [
   { pin: '1012', name: 'prashant' },
   { pin: '1013', name: 'yogesh' },
   { pin: '1014', name: 'anishka' },
-  { pin: '1015', name: 'chinmay' }
+  { pin: '1015', name: 'chinmay' },
+  { pin: '1016', name: 'chandan' }
 ];
 
 /* ======================================
@@ -1516,6 +1582,23 @@ function setCurrentUser(name){
   if(name) localStorage.setItem('chamber_user', name);
   else localStorage.removeItem('chamber_user');
 }
+function normalizeName(name){
+  return String(name || '').trim().toLowerCase();
+}
+function splitNames(value){
+  return String(value || '')
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+function getCurrentStaff(){
+  const user = normalizeName(getCurrentUser());
+  return STAFF.find(s => normalizeName(s.name) === user) || null;
+}
+function getCurrentUserReview(){
+  const staff = getCurrentStaff();
+  return staff && staff.review ? String(staff.review) : '';
+}
 function findUserByPin(pin){
   const found = STAFF.find(s => s.pin === pin);
   return found ? found.name : null;
@@ -1544,6 +1627,7 @@ function checkPIN(){
     setTimeout(() => {
       $('screen-login').classList.remove('active');
       goHome();
+      logDiaryAction('Opened diary');
       loadAll();
     }, 200);
   } else {
@@ -1556,6 +1640,8 @@ function checkPIN(){
 function showLogin(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('bottom-nav').classList.add('hidden');
+  const reviewFab = $('review-fab');
+  if(reviewFab) reviewFab.style.display = 'none';
   $('screen-login').classList.add('active');
   currentPin = '';
   updatePinDots();
@@ -1574,6 +1660,8 @@ function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $(id).classList.add('active');
   $('bottom-nav').classList.remove('hidden');
+  const reviewFab = $('review-fab');
+  if(reviewFab) reviewFab.style.display = getCurrentUser() ? 'flex' : 'none';
   window.scrollTo(0,0);
   // update bottom nav active state
   const map = {'screen-home':'nav-home','screen-today':'nav-today','screen-action':'nav-action','screen-cases':'nav-cases'};
@@ -1658,7 +1746,7 @@ async function loadUsers(){
       const rows = (isNaN(usersData[0][1]) ? usersData.slice(1) : usersData);
       const loaded = rows
         .filter(r => r[0] && r[1])
-        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim() }));
+        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim(), review: String(r[2] || '').trim() }));
       if(loaded.length > 0){
         STAFF = loaded;
         localStorage.setItem('cache_staff', JSON.stringify(STAFF));
@@ -1694,7 +1782,7 @@ async function loadAll(forceRefresh){
     if(usersData && usersData.length > 0){
       const loaded = usersData
         .filter(r => r[0] && r[1])
-        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim() }));
+        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim(), review: String(r[2] || '').trim() }));
       if(loaded.length > 0){
         STAFF = loaded;
         localStorage.setItem('cache_staff', JSON.stringify(STAFF));
@@ -1750,19 +1838,21 @@ function syncFromHearings(){
     const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
     if(!cid) return;
     const hd = parseDate(getField(h,'Hearing Date'));
-    const nd = parseDate(getField(h,'Next Date'));
-    if(!hd || !nd) return;
+    if(!hd) return;
     if(!latest[cid] || hd > latest[cid]._hd){
-      latest[cid] = { ...h, _hd: hd, _nd: nd };
+      latest[cid] = { ...h, _hd: hd };
     }
   });
   CASES.forEach(c => {
     const cid = String(getField(c,'Case ID')||'').trim().toLowerCase();
     const l = latest[cid];
     if(l){
-      const nd = l._nd;
-      c['Current Next Date'] = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
-      c['Latest Order Summary'] = getField(l,'Order Summary') || c['Latest Order Summary'];
+      const nextDateValue = getField(l,'Next Date');
+      const nd = parseDate(nextDateValue);
+      c['Current Next Date'] = nd
+        ? `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`
+        : isDisposed(nextDateValue) ? String(nextDateValue).trim() : '';
+      c['Latest Order Summary'] = getField(l,'Order Summary') || '';
     }
   });
 }
@@ -1780,6 +1870,52 @@ function showError(msg){
     home.querySelector('.greeting').after(banner);
   }
   banner.innerHTML = `<strong>Could not load data</strong>${escapeHTML(msg)}`;
+}
+
+/* ======================================
+   FAVOURITES
+   ====================================== */
+function findCaseById(caseId){
+  const cid = String(caseId || '').trim().toLowerCase();
+  return CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === cid) || null;
+}
+
+function getCaseLawyers(c){
+  return getField(c, 'name of lawyer connected', 'vakalatnama lawyer', 'Vakalatnama Lawyer');
+}
+
+function isFavoriteCase(c){
+  const user = normalizeName(getCurrentUser());
+  if(!user || !c) return false;
+  return splitNames(getCaseLawyers(c)).some(name => normalizeName(name) === user);
+}
+
+function sortCasesForUser(list){
+  return [...list].sort((a,b) => {
+    const af = isFavoriteCase(a);
+    const bf = isFavoriteCase(b);
+    if(af !== bf) return af ? -1 : 1;
+    const ai = String(getField(a,'Case ID') || '').toLowerCase();
+    const bi = String(getField(b,'Case ID') || '').toLowerCase();
+    return ai.localeCompare(bi, undefined, { numeric:true });
+  });
+}
+
+function entryFavorite(entry){
+  const caseId = getField(entry.hearing, 'Case ID');
+  return isFavoriteCase(findCaseById(caseId));
+}
+
+function sortEntriesForUser(entries){
+  return entries.sort((a,b) => {
+    const af = entryFavorite(a);
+    const bf = entryFavorite(b);
+    if(af !== bf) return af ? -1 : 1;
+    if(a.matchType !== b.matchType) return a.matchType === 'held' ? -1 : 1;
+    const ai = String(getField(a.hearing,'Case ID') || '').toLowerCase();
+    const bi = String(getField(b.hearing,'Case ID') || '').toLowerCase();
+    return ai.localeCompare(bi, undefined, { numeric:true });
+  });
 }
 
 /* ======================================
@@ -1841,7 +1977,12 @@ function getPendingCases(){
     const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === cid);
     pending.push({ hearing: h, case: c });
   });
-  pending.sort((a,b) => b.hearing._hd - a.hearing._hd);
+  pending.sort((a,b) => {
+    const af = isFavoriteCase(a.case);
+    const bf = isFavoriteCase(b.case);
+    if(af !== bf) return af ? -1 : 1;
+    return b.hearing._hd - a.hearing._hd;
+  });
   return pending;
 }
 
@@ -1882,23 +2023,38 @@ function renderCases(){
     list.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="t">No cases found</div><div class="s">${q ? 'Try a different search' : 'Sheet may be empty'}</div></div>`;
     return;
   }
-  list.innerHTML = filtered.map(c => caseCard(c)).join('');
+  filtered = sortCasesForUser(filtered);
+  const favCount = filtered.filter(c => isFavoriteCase(c)).length;
+  const header = favCount
+    ? `<div class="date-header">Favourite Cases<span class="small">${favCount} starred ${favCount===1?'case':'cases'} shown first</span></div>`
+    : '';
+  list.innerHTML = header + filtered.map(c => caseCard(c)).join('');
 }
 
 function caseCard(c){
-  const id = escapeHTML(getField(c,'Case ID') || '');
+  const rawId = getField(c,'Case ID') || '';
+  const id = escapeHTML(rawId);
   const title = escapeHTML(getField(c,'Case Title') || 'Untitled Case');
   const court = escapeHTML(getField(c,'Court') || '');
   const client = escapeHTML(getField(c,'Client Name') || '');
+  const caseNumber = escapeHTML(getField(c,'case number') || '');
+  const section = escapeHTML(getField(c,'Section') || '');
   const nextDate = c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '';
+  const favorite = isFavoriteCase(c);
   return `
-    <div class="case-card" data-action="open-case" data-case="${id}">
+    <div class="case-card ${favorite ? 'favorite' : ''}" data-action="open-case" data-case="${id}">
       ${nextDate ? `<div class="next-pill">${escapeHTML(nextDate)}</div>` : ''}
       <div class="head">
-        <div class="pills"><span class="pill pill-id">${id}</span></div>
+        <div class="pills">
+          ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+          <span class="pill pill-id">${id}</span>
+        </div>
+        <button class="fav-btn ${favorite ? 'active' : ''}" data-action="toggle-favorite" data-case="${id}" title="${favorite ? 'Remove from favourites' : 'Add to favourites'}">${favorite ? '★' : '☆'}</button>
       </div>
       <h3>${title}</h3>
       <div class="meta">
+        ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${caseNumber}</span></div>` : ''}
+        ${section ? `<div class="meta-row"><span class="lbl">Section</span><span class="val">${section}</span></div>` : ''}
         ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${court}</span></div>` : ''}
         ${client ? `<div class="meta-row"><span class="lbl">Client</span><span class="val">${client}</span></div>` : ''}
       </div>
@@ -1920,7 +2076,7 @@ function renderToday(){
     return;
   }
 
-  entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+  sortEntriesForUser(entries);
   const heldCount = entries.filter(e => e.matchType === 'held').length;
   const schedCount = entries.length - heldCount;
 
@@ -1950,7 +2106,7 @@ function renderDateView(){
     return;
   }
 
-  entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+  sortEntriesForUser(entries);
   const heldCount = entries.filter(e => e.matchType === 'held').length;
   const schedCount = entries.length - heldCount;
 
@@ -1993,7 +2149,7 @@ function renderWeek(){
     if(entries.length === 0){
       html += `<div class="empty-row">No matters listed</div>`;
     } else {
-      entries.sort((a,b) => a.matchType === b.matchType ? 0 : a.matchType === 'held' ? -1 : 1);
+      sortEntriesForUser(entries);
       entries.forEach(e => html += diaryCard(e.hearing, e.matchType, isToday));
     }
     html += `</div>`;
@@ -2012,12 +2168,15 @@ function diaryCard(h, type, allowUpdate){
   const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === caseId.toLowerCase());
   const title = getField(h,'case title') || getField(c,'Case Title') || '(Untitled)';
   const court = getField(c,'Court') || '';
+  const caseNumber = getField(c,'case number') || '';
+  const section = getField(c,'Section') || '';
   const order = getField(h,'Order Summary') || '';
   const person = getField(h,'Person Who Brought Date') || '';
   const nextOn = getField(h,'Next Date') ? fmtDate(getField(h,'Next Date')) : '';
   const heldOn = getField(h,'Hearing Date') ? fmtDate(getField(h,'Hearing Date')) : '';
   const isHeld = type === 'held';
   const hasNext = parseDate(getField(h,'Next Date'));
+  const favorite = isFavoriteCase(c);
 
   const lastDateForBtn = isHeld ? heldOn : '';
   const tagText = isHeld ? 'HEARING HELD' : 'SCHEDULED';
@@ -2025,15 +2184,18 @@ function diaryCard(h, type, allowUpdate){
   const pillClass = isHeld ? 'pill-held' : 'pill-scheduled';
 
   return `
-    <div class="case-card ${cardClass}">
+    <div class="case-card ${cardClass} ${favorite ? 'favorite' : ''}">
       <div class="head">
         <div class="pills">
+          ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
           <span class="pill ${pillClass}">${tagText}</span>
           <span class="pill pill-id">${escapeHTML(caseId)}${entryId?` · ${escapeHTML(entryId)}`:''}</span>
         </div>
       </div>
       <h3 data-action="open-case" data-case="${escapeHTML(caseId)}">${escapeHTML(title)}</h3>
       <div class="meta" data-action="open-case" data-case="${escapeHTML(caseId)}">
+        ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
+        ${section ? `<div class="meta-row"><span class="lbl">Section</span><span class="val">${escapeHTML(section)}</span></div>` : ''}
         ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
         ${isHeld
           ? `<div class="meta-row"><span class="lbl">Order</span><span class="val">${escapeHTML(order || '—')}</span></div>
@@ -2078,9 +2240,12 @@ function renderAction(){
       const entryId = getField(hearing,'Entry ID') || '';
       const title = getField(c,'Case Title') || getField(hearing,'case title') || '(case not found)';
       const court = getField(c,'Court') || '';
+      const caseNumber = getField(c,'case number') || '';
+      const section = getField(c,'Section') || '';
       const lastDate = fmtDate(getField(hearing,'Hearing Date'));
       const person = getField(hearing,'Person Who Brought Date') || '—';
       const order = getField(hearing,'Order Summary') || '';
+      const favorite = isFavoriteCase(c);
 
       // Calculate days overdue
       const lastDt = parseDate(getField(hearing,'Hearing Date'));
@@ -2092,9 +2257,10 @@ function renderAction(){
       }
 
       html += `
-        <div class="case-card urgent">
+        <div class="case-card urgent ${favorite ? 'favorite' : ''}">
           <div class="head">
             <div class="pills">
+              ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
               <span class="pill pill-urgent">PAST DUE</span>
               <span class="pill pill-id">${escapeHTML(caseId)} · ${escapeHTML(entryId)}</span>
             </div>
@@ -2102,6 +2268,8 @@ function renderAction(){
           </div>
           <h3 data-action="open-case" data-case="${escapeHTML(caseId)}">${escapeHTML(title)}</h3>
           <div class="meta" data-action="open-case" data-case="${escapeHTML(caseId)}">
+            ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
+            ${section ? `<div class="meta-row"><span class="lbl">Section</span><span class="val">${escapeHTML(section)}</span></div>` : ''}
             ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
             <div class="meta-row"><span class="lbl">Attended</span><span class="val"><strong>${escapeHTML(person)}</strong></span></div>
             ${order ? `<div class="meta-row"><span class="lbl">Order</span><span class="val">${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}
@@ -2150,6 +2318,7 @@ function renderDetail(c){
 
   const phone = fmtPhone(getField(c,'Phone Number'));
   const fileLink = String(getField(c,'File Link')||'').trim();
+  const favorite = isFavoriteCase(c);
 
   const fields = [
     ['Case Number', getField(c,'case number')],
@@ -2157,7 +2326,7 @@ function renderDetail(c){
     ['Police Station', getField(c,'police station')],
     ['Client Name', getField(c,'Client Name')],
     ['Phone', phone ? `<a href="tel:${phone}">${phone}</a>` : ''],
-    ['Vakalatnama Lawyer', getField(c,'vakalatnama lawyer')],
+    ['Lawyers Connected', getCaseLawyers(c)],
     ['First Date', getField(c,'First Date') ? fmtDate(getField(c,'First Date')) : ''],
     ['Current Next Date', c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '', 'gold'],
     ['Latest Order', getField(c,'Latest Order Summary')],
@@ -2169,6 +2338,7 @@ function renderDetail(c){
       <span class="pill pill-id">${escapeHTML(getField(c,'Case ID') || '')}</span>
       <h2>${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}</h2>
       <div class="court">${escapeHTML(getField(c,'Court') || '')}</div>
+      <button class="btn-secondary" style="margin-top:12px" data-action="toggle-favorite" data-case="${escapeHTML(getField(c,'Case ID') || '')}">${favorite ? '★ Remove Favourite' : '☆ Add Favourite'}</button>
     </div>
     <div class="field-grid">
   `;
@@ -2275,6 +2445,9 @@ async function submitUpdate(){
     const result = await postToScript(payload);
     if(result.success){
       toast('✓ Saved', 'success');
+      const entryId = currentUpdateEntry.entryId || '';
+      const caseId = currentUpdateEntry.caseId || '';
+      logDiaryAction(`Edited hearing entry ${entryId} for case ${caseId}`);
       closeUpdateForm();
       await loadAll(false);
       // re-render whichever screen is visible
@@ -2304,6 +2477,112 @@ async function postToScript(payload){
     body: JSON.stringify(payload)
   });
   return await res.json();
+}
+
+async function logDiaryAction(actionText){
+  const user = getCurrentUser();
+  if(!user || !actionText) return;
+  try {
+    await postToScript({
+      action: 'logAction',
+      user,
+      actionText
+    });
+  } catch (err) {
+    console.warn('Log action failed:', err);
+  }
+}
+
+async function toggleFavorite(caseId){
+  const user = getCurrentUser();
+  if(!user){ toast('Please login first', 'error'); showLogin(); return; }
+  const c = findCaseById(caseId);
+  if(!c){ toast('Case not found', 'error'); return; }
+
+  try {
+    const result = await postToScript({
+      action: 'toggleFavoriteCase',
+      caseId,
+      user
+    });
+    if(result.success){
+      const lawyers = result.lawyers || '';
+      c['name of lawyer connected'] = lawyers;
+      c['vakalatnama lawyer'] = lawyers;
+      c['Vakalatnama Lawyer'] = lawyers;
+      localStorage.setItem('cache_cases', JSON.stringify(CASES));
+      toast(result.favorite ? 'Added to favourites' : 'Removed from favourites', 'success');
+      logDiaryAction(`${result.favorite ? 'Added favourite' : 'Removed favourite'} case ${caseId}`);
+      refreshVisibleScreen();
+    } else {
+      toast('Error: ' + (result.error || 'Unknown'), 'error');
+    }
+  } catch(err){
+    console.error(err);
+    toast('Network error', 'error');
+  }
+}
+
+function refreshVisibleScreen(){
+  if($('screen-cases').classList.contains('active')) renderCases();
+  if($('screen-today').classList.contains('active')) renderToday();
+  if($('screen-date').classList.contains('active')) renderDateView();
+  if($('screen-week').classList.contains('active')) renderWeek();
+  if($('screen-action').classList.contains('active')) renderAction();
+  if($('screen-detail').classList.contains('active')){
+    const active = document.querySelector('#detail-content .detail-hero .pill-id');
+    if(active) openCase(active.textContent);
+  }
+}
+
+function openReviewModal(){
+  const user = getCurrentUser();
+  if(!user){ toast('Please login first', 'error'); showLogin(); return; }
+  $('review-user-name').textContent = user;
+  $('review-text').value = getCurrentUserReview();
+  $('review-submit-btn').textContent = 'Save Review';
+  $('review-submit-btn').disabled = false;
+  $('review-modal').classList.add('active');
+  setTimeout(() => $('review-text').focus(), 250);
+}
+
+function closeReviewModal(){
+  $('review-modal').classList.remove('active');
+}
+
+async function submitReview(){
+  const user = getCurrentUser();
+  const review = $('review-text').value.trim();
+  if(!user){ toast('Session expired — re-login', 'error'); closeReviewModal(); showLogin(); return; }
+
+  const btn = $('review-submit-btn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const result = await postToScript({
+      action: 'updateReview',
+      user,
+      review
+    });
+    if(result.success){
+      const staff = getCurrentStaff();
+      if(staff) staff.review = review;
+      localStorage.setItem('cache_staff', JSON.stringify(STAFF));
+      toast('Review saved', 'success');
+      logDiaryAction('Updated review');
+      closeReviewModal();
+    } else {
+      toast('Error: ' + (result.error || 'Unknown'), 'error');
+      btn.textContent = 'Save Review';
+      btn.disabled = false;
+    }
+  } catch(err){
+    console.error(err);
+    toast('Network error', 'error');
+    btn.textContent = 'Save Review';
+    btn.disabled = false;
+  }
 }
 
 /* ======================================
@@ -2554,6 +2833,12 @@ document.addEventListener('click', (e) => {
       btn.dataset.last || ''
     );
   }
+  else if(action === 'toggle-favorite'){
+    e.preventDefault();
+    e.stopPropagation();
+    const caseId = btn.dataset.case;
+    if(caseId) toggleFavorite(caseId);
+  }
 });
 
 /* ======================================
@@ -2569,6 +2854,7 @@ if(cachedStaff){ try { STAFF = JSON.parse(cachedStaff); } catch(e){} }
 if(getCurrentUser()){
   show('screen-home');
   updateGreeting();
+  logDiaryAction('Opened diary');
   loadAll();
 } else {
   // Load users before showing login so PINs are fresh
