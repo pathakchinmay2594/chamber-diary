@@ -449,6 +449,8 @@ a{color:var(--primary);text-decoration:none}
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
   transition:all 0.15s;
+  position:relative;
+  z-index:3;
 }
 .fav-btn.active{
   background:var(--warning-container);
@@ -502,12 +504,14 @@ a{color:var(--primary);text-decoration:none}
   font-size:13px;
 }
 .case-card .next-pill{
-  position:absolute;top:12px;right:12px;
+  position:absolute;top:12px;right:58px;
   font-family:var(--display);
   font-size:11px;font-weight:600;
   color:var(--primary);
   background:var(--primary-container);
   padding:4px 9px;border-radius:8px;
+  pointer-events:none;
+  z-index:1;
 }
 .case-card .actions{
   display:flex;gap:8px;margin-top:14px;
