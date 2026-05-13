@@ -411,6 +411,19 @@ a{color:var(--primary);text-decoration:none}
 .case-card.scheduled{
   border-left:4px solid var(--secondary);
 }
+.case-card.updated-today{
+  opacity:0.78;
+  background:#f7f7f4;
+  border-left-color:#8c9283;
+}
+.case-card.type-session{box-shadow:inset 4px 0 0 #4f6f92}
+.case-card.type-family{box-shadow:inset 4px 0 0 #9b6f82}
+.case-card.type-lower{box-shadow:inset 4px 0 0 #6a7f54}
+.case-card.type-unmarked{
+  background:#fbfaf7;
+  border-color:#dad8cf;
+  box-shadow:inset 4px 0 0 #d1d0c8;
+}
 .case-card.favorite{
   border-left:4px solid var(--warning);
   background:linear-gradient(to right, #fef9ec 0%, var(--surface-container-low) 32%);
@@ -434,6 +447,11 @@ a{color:var(--primary);text-decoration:none}
 .pill-scheduled{background:var(--surface-container-high);color:var(--on-surface-variant)}
 .pill-urgent{background:var(--error-container);color:var(--on-error-container)}
 .pill-fav{background:var(--warning-container);color:var(--on-warning-container)}
+.pill-updated{background:#e5e7df;color:#4f5548}
+.pill-type-session{background:#dbe8f4;color:#18344f}
+.pill-type-family{background:#f0dee5;color:#533142}
+.pill-type-lower{background:#dde9d2;color:#213819}
+.pill-type-unmarked{background:#eeeeea;color:#5a5b55}
 .pill-overdue{
   background:var(--error);color:#fff;
   font-size:9.5px;
@@ -537,6 +555,59 @@ a{color:var(--primary);text-decoration:none}
   padding:10px 14px;border-radius:9px;
   font-weight:600;font-size:13px;
 }
+.daily-progress{
+  margin:12px 16px;
+  background:#ffffff;
+  border:1px solid rgba(197,200,185,0.55);
+  border-radius:12px;
+  padding:12px 14px;
+  box-shadow:var(--shadow-sm);
+}
+.daily-progress .row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:12px;color:var(--on-surface-variant);
+}
+.daily-progress .count{
+  font-weight:800;
+  color:var(--primary);
+  font-size:15px;
+}
+.daily-progress .bar{
+  height:7px;
+  background:var(--surface-container-high);
+  border-radius:99px;
+  overflow:hidden;
+  margin-top:9px;
+}
+.daily-progress .fill{
+  height:100%;
+  background:var(--primary);
+  border-radius:99px;
+}
+.type-section{
+  margin:14px 0 18px;
+}
+.type-section-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 16px 8px;
+  padding:8px 0;
+  border-bottom:1px solid rgba(197,200,185,0.45);
+}
+.type-section-head .name{
+  font-family:var(--display);
+  font-size:18px;
+  font-weight:700;
+}
+.type-section-head .sub{
+  font-size:11px;
+  color:var(--outline);
+  text-transform:uppercase;
+  letter-spacing:0.6px;
+}
+.type-session-head .name{color:#314f70}
+.type-family-head .name{color:#7b4d62}
+.type-lower-head .name{color:#4c6538}
+.type-unmarked-head .name{color:#6a6b64}
 
 /* ============ SEARCH ============ */
 .search-wrap{
@@ -1159,6 +1230,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="date-sub" id="greeting-date">—</div>
     </div>
 
+    <div id="home-progress"></div>
+
     <div class="stats-row">
       <div class="stat-card" onclick="goCases()">
         <div class="num" id="stat-total">—</div>
@@ -1369,6 +1442,64 @@ a{color:var(--primary);text-decoration:none}
   </div>
 </div>
 
+<!-- ======= CASE EDIT MODAL ======= -->
+<div class="modal" id="case-edit-modal">
+  <div class="modal-content">
+    <h3>Edit Case Details</h3>
+    <div class="modal-sub">Every change is recorded in access_log.</div>
+    <div class="form-info" id="case-edit-info"></div>
+
+    <div class="form-field">
+      <label>Case Number</label>
+      <input type="text" id="edit-case-number">
+    </div>
+    <div class="form-field">
+      <label>Case Title</label>
+      <input type="text" id="edit-case-title">
+    </div>
+    <div class="form-field">
+      <label>Court</label>
+      <input type="text" id="edit-court">
+    </div>
+    <div class="form-field">
+      <label>Police Station</label>
+      <input type="text" id="edit-police-station">
+    </div>
+    <div class="form-field">
+      <label>Section</label>
+      <input type="text" id="edit-section">
+    </div>
+    <div class="form-field">
+      <label>Lawyer Connected</label>
+      <input type="text" id="edit-lawyer">
+    </div>
+    <div class="form-field">
+      <label>Client Name</label>
+      <input type="text" id="edit-client">
+    </div>
+    <div class="form-field">
+      <label>Phone Number</label>
+      <input type="text" id="edit-phone">
+    </div>
+    <div class="form-field">
+      <label>First Date</label>
+      <input type="date" id="edit-first-date">
+    </div>
+    <div class="form-field">
+      <label>Court Type</label>
+      <select id="edit-court-type">
+        <option value="">Unmarked</option>
+        <option value="session">Session</option>
+        <option value="family">Family</option>
+        <option value="lower">Lower</option>
+      </select>
+    </div>
+
+    <button class="btn" id="case-edit-submit-btn" onclick="submitCaseEdit()">Save Case Details</button>
+    <button class="btn secondary" onclick="closeCaseEditModal()">Cancel</button>
+  </div>
+</div>
+
 <!-- ======= CHANGE PIN MODAL ======= -->
 <div class="modal" id="changepin-modal">
   <div class="modal-content">
@@ -1406,7 +1537,7 @@ a{color:var(--primary);text-decoration:none}
     <button class="btn secondary" onclick="closeSettings(); openChangePinModal()">🔑 Change My PIN</button>
     <button class="btn danger" onclick="switchUser()">Switch User</button>
     <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--outline);font-style:italic;font-family:var(--display)">
-      Chamber Diary · v21
+      Chamber Diary · v22
     </div>
   </div>
 </div>
@@ -1440,10 +1571,10 @@ a{color:var(--primary);text-decoration:none}
 const SHEET_ID = '1lHqSC2J8CcyRxBrkOPmXSPu--lfG_1DsjYH0NRPDfi8';
 const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
 const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
-const CASES_RANGE = 'cases_master!A1:M1000';
+const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v22';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1475,8 +1606,10 @@ let STAFF = [
 let CASES = [];
 let HEARINGS = [];
 let currentPin = '';
+let currentUserName = '';
 let detailFromScreen = 'home';
 let currentUpdateEntry = null;
+let currentEditCaseId = '';
 
 /* ======================================
    UTILS
@@ -1581,10 +1714,11 @@ function isDisposed(nextDateValue){
 /* ======================================
    PIN AUTH
    ====================================== */
-function getCurrentUser(){ return localStorage.getItem('chamber_user') || ''; }
+function getCurrentUser(){ return currentUserName || ''; }
 function setCurrentUser(name){
-  if(name) localStorage.setItem('chamber_user', name);
-  else localStorage.removeItem('chamber_user');
+  currentUserName = name || '';
+  localStorage.removeItem('chamber_user');
+  sessionStorage.removeItem('chamber_user');
 }
 function normalizeName(name){
   return String(name || '').trim().toLowerCase();
@@ -1894,6 +2028,112 @@ function isFavoriteCase(c){
   return splitNames(getCaseLawyers(c)).some(name => normalizeName(name) === user);
 }
 
+function normalizeCourtType(value){
+  const s = String(value || '').trim().toLowerCase();
+  if(['session','sessions','session court','sessions court'].includes(s)) return 'session';
+  if(['family','family court'].includes(s)) return 'family';
+  if(['lower','lower court'].includes(s)) return 'lower';
+  return 'unmarked';
+}
+
+function getCourtType(c){
+  if(!c) return 'unmarked';
+  const direct = getField(c, 'court type', 'Court Type', 'case type', 'Case Type');
+  const directType = normalizeCourtType(direct);
+  if(directType !== 'unmarked') return directType;
+  const maybeColM = getField(c, 'File Link');
+  const colMType = normalizeCourtType(maybeColM);
+  return colMType !== 'unmarked' ? colMType : 'unmarked';
+}
+
+function courtTypeLabel(type){
+  return ({ session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked' })[type] || 'Unmarked';
+}
+
+function courtTypePill(type){
+  const t = normalizeCourtType(type);
+  return `<span class="pill pill-type-${t}">${courtTypeLabel(t)}</span>`;
+}
+
+function isHearingUpdatedToday(h){
+  if(toISODate(getField(h,'Hearing Date')) !== todayISO()) return false;
+  return !!(
+    String(getField(h,'Order Summary') || '').trim() ||
+    String(getField(h,'Person Who Brought Date') || '').trim() ||
+    String(getField(h,'Updated By') || '').trim()
+  );
+}
+
+function getTodayProgress(){
+  const entries = getEntriesForDate(todayISO());
+  const total = entries.length;
+  const updated = entries.filter(e => isHearingUpdatedToday(e.hearing)).length;
+  return { updated, total, pending: Math.max(total - updated, 0) };
+}
+
+function dailyProgressHTML(){
+  const p = getTodayProgress();
+  const pct = p.total ? Math.round((p.updated / p.total) * 100) : 0;
+  return `<div class="daily-progress">
+    <div class="row">
+      <span>Today's progress</span>
+      <span class="count">${p.updated}/${p.total} cases updated</span>
+    </div>
+    <div class="row" style="margin-top:3px">
+      <span>${p.pending} unfinished for today</span>
+      <span>${pct}%</span>
+    </div>
+    <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function groupEntriesByCourtType(entries){
+  const groups = [
+    { type:'session', label:'Session', entries:[] },
+    { type:'family', label:'Family', entries:[] },
+    { type:'lower', label:'Lower', entries:[] },
+    { type:'unmarked', label:'Unmarked', entries:[] }
+  ];
+  const byType = Object.fromEntries(groups.map(g => [g.type, g]));
+  entries.forEach(e => {
+    const c = findCaseById(getField(e.hearing, 'Case ID'));
+    const type = getCourtType(c);
+    byType[type].entries.push(e);
+  });
+  groups.forEach(g => sortEntriesForDisplay(g.entries));
+  return groups.filter(g => g.entries.length > 0);
+}
+
+function sortEntriesForDisplay(entries){
+  return entries.sort((a,b) => {
+    const au = isHearingUpdatedToday(a.hearing);
+    const bu = isHearingUpdatedToday(b.hearing);
+    if(au !== bu) return au ? 1 : -1;
+    const af = entryFavorite(a);
+    const bf = entryFavorite(b);
+    if(af !== bf) return af ? -1 : 1;
+    if(a.matchType !== b.matchType) return a.matchType === 'held' ? -1 : 1;
+    const ai = String(getField(a.hearing,'Case ID') || '').toLowerCase();
+    const bi = String(getField(b.hearing,'Case ID') || '').toLowerCase();
+    return ai.localeCompare(bi, undefined, { numeric:true });
+  });
+}
+
+function renderGroupedEntries(entries, allowUpdate){
+  let html = dailyProgressHTML();
+  groupEntriesByCourtType(entries).forEach(group => {
+    const updated = group.entries.filter(e => isHearingUpdatedToday(e.hearing)).length;
+    html += `<div class="type-section">
+      <div class="type-section-head type-${group.type}-head">
+        <div class="name">${group.label}</div>
+        <div class="sub">${updated}/${group.entries.length} updated</div>
+      </div>`;
+    group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate));
+    html += `</div>`;
+  });
+  return html;
+}
+
 function sortCasesForUser(list){
   return [...list].sort((a,b) => {
     const af = isFavoriteCase(a);
@@ -1927,16 +2167,10 @@ function sortEntriesForUser(entries){
    ====================================== */
 function updateStats(){
   $('stat-total').textContent = CASES.length;
-  const today = todayISO();
-
-  const todayCases = new Set();
-  HEARINGS.forEach(h => {
-    if(toISODate(getField(h,'Hearing Date')) === today || toISODate(getField(h,'Next Date')) === today){
-      const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
-      if(cid) todayCases.add(cid);
-    }
-  });
-  $('stat-today').textContent = todayCases.size;
+  const progress = getTodayProgress();
+  $('stat-today').textContent = progress.total;
+  const homeProgress = $('home-progress');
+  if(homeProgress) homeProgress.innerHTML = dailyProgressHTML();
 
   const actionCount = getPendingCases().length;
   $('stat-action').textContent = actionCount;
@@ -2024,7 +2258,7 @@ function renderCases(){
   let filtered = CASES;
   if(q) filtered = CASES.filter(c => Object.values(c).some(v => String(v).toLowerCase().includes(q)));
   if(filtered.length === 0){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="t">No cases found</div><div class="s">${q ? 'Try a different search' : 'Sheet may be empty'}</div></div>`;
+    list.innerHTML = dailyProgressHTML() + `<div class="empty"><div class="empty-icon">📋</div><div class="t">No cases found</div><div class="s">${q ? 'Try a different search' : 'Sheet may be empty'}</div></div>`;
     return;
   }
   filtered = sortCasesForUser(filtered);
@@ -2032,7 +2266,7 @@ function renderCases(){
   const header = favCount
     ? `<div class="date-header">Favourite Cases<span class="small">${favCount} starred ${favCount===1?'case':'cases'} shown first</span></div>`
     : '';
-  list.innerHTML = header + filtered.map(c => caseCard(c)).join('');
+  list.innerHTML = dailyProgressHTML() + header + filtered.map(c => caseCard(c)).join('');
 }
 
 function caseCard(c){
@@ -2045,12 +2279,14 @@ function caseCard(c){
   const section = escapeHTML(getField(c,'Section') || '');
   const nextDate = c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '';
   const favorite = isFavoriteCase(c);
+  const courtType = getCourtType(c);
   return `
-    <div class="case-card ${favorite ? 'favorite' : ''}" data-action="open-case" data-case="${id}">
+    <div class="case-card type-${courtType} ${favorite ? 'favorite' : ''}" data-action="open-case" data-case="${id}">
       ${nextDate ? `<div class="next-pill">${escapeHTML(nextDate)}</div>` : ''}
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+          ${courtTypePill(courtType)}
           <span class="pill pill-id">${id}</span>
         </div>
         <button class="fav-btn ${favorite ? 'active' : ''}" data-action="toggle-favorite" data-case="${id}" title="${favorite ? 'Remove from favourites' : 'Add to favourites'}">${favorite ? '★' : '☆'}</button>
@@ -2072,25 +2308,25 @@ function caseCard(c){
 function renderToday(){
   const today = todayISO();
   const entries = getEntriesForDate(today);
-  let html = '';
+  let html = dailyProgressHTML();
 
   if(entries.length === 0){
-    html = `<div class="empty"><div class="empty-icon">☀</div><div class="t">No matters listed today</div><div class="s">${fmtDate(today)}</div></div>`;
+    html += `<div class="empty"><div class="empty-icon">☀</div><div class="t">No matters listed today</div><div class="s">${fmtDate(today)}</div></div>`;
     $('today-content').innerHTML = html;
     return;
   }
 
-  sortEntriesForUser(entries);
+  sortEntriesForDisplay(entries);
   const heldCount = entries.filter(e => e.matchType === 'held').length;
   const schedCount = entries.length - heldCount;
 
-  html = `<div class="date-header">
+  html += `<div class="date-header">
     ${fmtDate(today)}
     <span class="small">${entries.length} ${entries.length===1?'case':'cases'}${heldCount>0 && schedCount>0 ? ` · ${heldCount} held · ${schedCount} scheduled` : ''}</span>
   </div>`;
 
   html += '<div class="list">';
-  entries.forEach(e => html += diaryCard(e.hearing, e.matchType, true));
+  html += renderGroupedEntries(entries, true);
   html += '</div>';
 
   $('today-content').innerHTML = html;
@@ -2106,21 +2342,21 @@ function renderDateView(){
 
   const entries = getEntriesForDate(date);
   if(entries.length === 0){
-    list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><div class="t">No matters on this date</div><div class="s">${fmtDate(date)}</div></div>`;
+    list.innerHTML = dailyProgressHTML() + `<div class="empty"><div class="empty-icon">📅</div><div class="t">No matters on this date</div><div class="s">${fmtDate(date)}</div></div>`;
     return;
   }
 
-  sortEntriesForUser(entries);
+  sortEntriesForDisplay(entries);
   const heldCount = entries.filter(e => e.matchType === 'held').length;
   const schedCount = entries.length - heldCount;
 
-  let html = `<div class="date-header">
+  let html = dailyProgressHTML() + `<div class="date-header">
     ${fmtDate(date)}
     <span class="small">${entries.length} ${entries.length===1?'case':'cases'}${heldCount>0 && schedCount>0 ? ` · ${heldCount} held · ${schedCount} scheduled` : ''}</span>
   </div>`;
 
   const isToday = date === todayISO();
-  entries.forEach(e => html += diaryCard(e.hearing, e.matchType, isToday));
+  html += renderGroupedEntries(entries, isToday);
   list.innerHTML = html;
 }
 
@@ -2153,8 +2389,8 @@ function renderWeek(){
     if(entries.length === 0){
       html += `<div class="empty-row">No matters listed</div>`;
     } else {
-      sortEntriesForUser(entries);
-      entries.forEach(e => html += diaryCard(e.hearing, e.matchType, isToday));
+      sortEntriesForDisplay(entries);
+      html += renderGroupedEntries(entries, isToday);
     }
     html += `</div>`;
   });
@@ -2181,6 +2417,8 @@ function diaryCard(h, type, allowUpdate){
   const isHeld = type === 'held';
   const hasNext = parseDate(getField(h,'Next Date'));
   const favorite = isFavoriteCase(c);
+  const courtType = getCourtType(c);
+  const updatedToday = isHearingUpdatedToday(h);
 
   const lastDateForBtn = isHeld ? heldOn : '';
   const tagText = isHeld ? 'HEARING HELD' : 'SCHEDULED';
@@ -2188,10 +2426,12 @@ function diaryCard(h, type, allowUpdate){
   const pillClass = isHeld ? 'pill-held' : 'pill-scheduled';
 
   return `
-    <div class="case-card ${cardClass} ${favorite ? 'favorite' : ''}">
+    <div class="case-card ${cardClass} type-${courtType} ${updatedToday ? 'updated-today' : ''} ${favorite ? 'favorite' : ''}">
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+          ${courtTypePill(courtType)}
+          ${updatedToday ? '<span class="pill pill-updated">UPDATED</span>' : ''}
           <span class="pill ${pillClass}">${tagText}</span>
           <span class="pill pill-id">${escapeHTML(caseId)}${entryId?` · ${escapeHTML(entryId)}`:''}</span>
         </div>
@@ -2229,12 +2469,12 @@ function diaryCard(h, type, allowUpdate){
    ====================================== */
 function renderAction(){
   const pending = getPendingCases();
-  let html = '';
+  let html = dailyProgressHTML();
 
   if(pending.length === 0){
-    html = `<div class="empty"><div class="empty-icon">✓</div><div class="t" style="color:var(--primary)">All caught up!</div><div class="s">No pending cases</div></div>`;
+    html += `<div class="empty"><div class="empty-icon">✓</div><div class="t" style="color:var(--primary)">All caught up!</div><div class="s">No pending cases</div></div>`;
   } else {
-    html = `<div class="banner error">
+    html += `<div class="banner error">
       <strong>⚠ ${pending.length} ${pending.length===1?'case needs':'cases need'} a next date</strong>
       Tap any case to update what happened and schedule the next hearing.
     </div><div class="list">`;
@@ -2250,6 +2490,7 @@ function renderAction(){
       const person = getField(hearing,'Person Who Brought Date') || '—';
       const order = getField(hearing,'Order Summary') || '';
       const favorite = isFavoriteCase(c);
+      const courtType = getCourtType(c);
 
       // Calculate days overdue
       const lastDt = parseDate(getField(hearing,'Hearing Date'));
@@ -2261,10 +2502,11 @@ function renderAction(){
       }
 
       html += `
-        <div class="case-card urgent ${favorite ? 'favorite' : ''}">
+        <div class="case-card urgent type-${courtType} ${favorite ? 'favorite' : ''}">
           <div class="head">
             <div class="pills">
               ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+              ${courtTypePill(courtType)}
               <span class="pill pill-urgent">PAST DUE</span>
               <span class="pill pill-id">${escapeHTML(caseId)} · ${escapeHTML(entryId)}</span>
             </div>
@@ -2321,7 +2563,8 @@ function renderDetail(c){
     });
 
   const phone = fmtPhone(getField(c,'Phone Number'));
-  const fileLink = String(getField(c,'File Link')||'').trim();
+  const rawFileLink = String(getField(c,'File Link')||'').trim();
+  const fileLink = normalizeCourtType(rawFileLink) === 'unmarked' ? rawFileLink : '';
   const favorite = isFavoriteCase(c);
 
   const fields = [
@@ -2331,18 +2574,20 @@ function renderDetail(c){
     ['Client Name', getField(c,'Client Name')],
     ['Phone', phone ? `<a href="tel:${phone}">${phone}</a>` : ''],
     ['Lawyers Connected', getCaseLawyers(c)],
+    ['Court Type', courtTypeLabel(getCourtType(c))],
     ['First Date', getField(c,'First Date') ? fmtDate(getField(c,'First Date')) : ''],
     ['Current Next Date', c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '', 'gold'],
     ['Latest Order', getField(c,'Latest Order Summary')],
     ['File Link', fileLink ? `<a href="${escapeHTML(fileLink)}" target="_blank" rel="noopener">${escapeHTML(fileLink)}</a>` : '']
   ];
 
-  let html = `
+  let html = dailyProgressHTML() + `
     <div class="detail-hero">
       <span class="pill pill-id">${escapeHTML(getField(c,'Case ID') || '')}</span>
       <h2>${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}</h2>
       <div class="court">${escapeHTML(getField(c,'Court') || '')}</div>
       <button class="btn-secondary" style="margin-top:12px" data-action="toggle-favorite" data-case="${escapeHTML(getField(c,'Case ID') || '')}">${favorite ? '★ Remove Favourite' : '☆ Add Favourite'}</button>
+      <button class="btn-secondary" style="margin-top:8px" data-action="edit-case" data-case="${escapeHTML(getField(c,'Case ID') || '')}">Edit Case Details</button>
     </div>
     <div class="field-grid">
   `;
@@ -2377,6 +2622,90 @@ function renderDetail(c){
     html += `</div>`;
   }
   $('detail-content').innerHTML = html;
+}
+
+function caseDateInputValue(value){
+  const iso = toISODate(value);
+  return iso || '';
+}
+
+function openCaseEditModal(caseId){
+  const user = getCurrentUser();
+  if(!user){ toast('Please login first', 'error'); showLogin(); return; }
+  const c = findCaseById(caseId);
+  if(!c){ toast('Case not found', 'error'); return; }
+
+  currentEditCaseId = String(getField(c,'Case ID') || '').trim();
+  $('case-edit-info').innerHTML = `
+    <div class="case-title">${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}</div>
+    <div class="meta-line"><strong>Case</strong> ${escapeHTML(currentEditCaseId)} · <strong>Edited by</strong> ${escapeHTML(user)}</div>
+  `;
+  $('edit-case-number').value = getField(c,'case number') || '';
+  $('edit-case-title').value = getField(c,'Case Title') || '';
+  $('edit-court').value = getField(c,'Court') || '';
+  $('edit-police-station').value = getField(c,'police station') || '';
+  $('edit-section').value = getField(c,'Section') || '';
+  $('edit-lawyer').value = getCaseLawyers(c) || '';
+  $('edit-client').value = getField(c,'Client Name') || '';
+  $('edit-phone').value = getField(c,'Phone Number') || '';
+  $('edit-first-date').value = caseDateInputValue(getField(c,'First Date'));
+  $('edit-court-type').value = getCourtType(c) === 'unmarked' ? '' : getCourtType(c);
+  $('case-edit-submit-btn').textContent = 'Save Case Details';
+  $('case-edit-submit-btn').disabled = false;
+  $('case-edit-modal').classList.add('active');
+  setTimeout(() => $('edit-case-title').focus(), 250);
+}
+
+function closeCaseEditModal(){
+  $('case-edit-modal').classList.remove('active');
+  currentEditCaseId = '';
+}
+
+async function submitCaseEdit(){
+  const user = getCurrentUser();
+  if(!user){ toast('Session expired — re-login', 'error'); closeCaseEditModal(); showLogin(); return; }
+  if(!currentEditCaseId){ toast('No case selected', 'error'); return; }
+
+  const payload = {
+    action: 'updateCase',
+    user,
+    caseId: currentEditCaseId,
+    caseNumber: $('edit-case-number').value.trim(),
+    caseTitle: $('edit-case-title').value.trim(),
+    court: $('edit-court').value.trim(),
+    policeStation: $('edit-police-station').value.trim(),
+    section: $('edit-section').value.trim(),
+    vakalatnamaLawyer: $('edit-lawyer').value.trim(),
+    clientName: $('edit-client').value.trim(),
+    phoneNumber: $('edit-phone').value.trim(),
+    firstDate: $('edit-first-date').value,
+    courtType: $('edit-court-type').value
+  };
+
+  if(!payload.caseTitle){ toast('Case title is required', 'error'); return; }
+
+  const btn = $('case-edit-submit-btn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const result = await postToScript(payload);
+    if(result.success){
+      toast(result.changed ? 'Case details saved' : 'No change found', 'success');
+      closeCaseEditModal();
+      await loadAll(false);
+      openCase(currentEditCaseId);
+    } else {
+      toast('Error: ' + (result.error || 'Unknown'), 'error');
+      btn.textContent = 'Save Case Details';
+      btn.disabled = false;
+    }
+  } catch(err){
+    console.error(err);
+    toast('Network error', 'error');
+    btn.textContent = 'Save Case Details';
+    btn.disabled = false;
+  }
 }
 
 /* ======================================
@@ -2843,6 +3172,12 @@ document.addEventListener('click', (e) => {
     const caseId = btn.dataset.case;
     if(caseId) toggleFavorite(caseId);
   }
+  else if(action === 'edit-case'){
+    e.preventDefault();
+    e.stopPropagation();
+    const caseId = btn.dataset.case;
+    if(caseId) openCaseEditModal(caseId);
+  }
 });
 
 /* ======================================
@@ -2854,6 +3189,8 @@ setInterval(updateGreeting, 5 * 60 * 1000); // FIX P1-22: every 5 min, not 1
 // Load cached staff on startup so login works offline
 const cachedStaff = localStorage.getItem('cache_staff');
 if(cachedStaff){ try { STAFF = JSON.parse(cachedStaff); } catch(e){} }
+localStorage.removeItem('chamber_user');
+sessionStorage.removeItem('chamber_user');
 
 if(getCurrentUser()){
   show('screen-home');
