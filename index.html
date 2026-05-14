@@ -1536,8 +1536,8 @@ a{color:var(--primary);text-decoration:none}
     <button class="btn secondary" onclick="closeSettings()">Close</button>
     <button class="btn secondary" onclick="closeSettings(); openChangePinModal()">🔑 Change My PIN</button>
     <button class="btn danger" onclick="switchUser()">Switch User</button>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--outline);font-style:italic;font-family:var(--display)">
-      Chamber Diary · v22
+    <div id="app-version-label" style="text-align:center;margin-top:16px;font-size:11px;color:var(--outline);font-style:italic;font-family:var(--display)">
+      Chamber Diary
     </div>
   </div>
 </div>
@@ -1698,8 +1698,14 @@ function getField(obj, ...candidates){
     if(obj[c] !== undefined && obj[c] !== '') return obj[c];
     const lower = String(c).toLowerCase();
     if(obj[lower] !== undefined && obj[lower] !== '') return obj[lower];
+    const normalized = normalizeHeaderKey(c);
+    if(obj[normalized] !== undefined && obj[normalized] !== '') return obj[normalized];
   }
   return '';
+}
+
+function normalizeHeaderKey(value){
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 // FIX P1-8: stricter disposed check
@@ -1764,7 +1770,9 @@ function checkPIN(){
     setCurrentUser(userName);
     setTimeout(() => {
       $('screen-login').classList.remove('active');
-      goHome();
+      show('screen-home');
+      updateGreeting();
+      showLoadingStats();
       logDiaryAction('Opened diary');
       loadAll();
     }, 200);
@@ -1831,11 +1839,11 @@ function goWeek(){
   renderWeek();
 }
 function backFromDetail(){
-  if(detailFromScreen === 'cases') show('screen-cases');
-  else if(detailFromScreen === 'today') show('screen-today');
-  else if(detailFromScreen === 'date') show('screen-date');
-  else if(detailFromScreen === 'week') show('screen-week');
-  else if(detailFromScreen === 'action') show('screen-action');
+  if(detailFromScreen === 'cases'){ show('screen-cases'); renderCases(); }
+  else if(detailFromScreen === 'today'){ show('screen-today'); renderToday(); }
+  else if(detailFromScreen === 'date'){ show('screen-date'); renderDateView(); }
+  else if(detailFromScreen === 'week'){ show('screen-week'); renderWeek(); }
+  else if(detailFromScreen === 'action'){ show('screen-action'); renderAction(); }
   else goHome();
 }
 
@@ -1879,12 +1887,7 @@ async function loadUsers(){
   try {
     const usersData = await fetchSheet(USERS_RANGE);
     if(usersData && usersData.length > 0){
-      const headers = usersData[0];
-      // Support with or without header row — detect by checking if first row is text
-      const rows = (isNaN(usersData[0][1]) ? usersData.slice(1) : usersData);
-      const loaded = rows
-        .filter(r => r[0] && r[1])
-        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim(), review: String(r[2] || '').trim() }));
+      const loaded = parseStaffRows(usersData);
       if(loaded.length > 0){
         STAFF = loaded;
         localStorage.setItem('cache_staff', JSON.stringify(STAFF));
@@ -1916,11 +1919,8 @@ async function loadAll(forceRefresh){
     ]);
     CASES = parseRows(casesData);
     HEARINGS = parseRows(hearingsData);
-    // Parse users (no header row expected — just name, pin)
     if(usersData && usersData.length > 0){
-      const loaded = usersData
-        .filter(r => r[0] && r[1])
-        .map(r => ({ name: String(r[0]).trim(), pin: String(r[1]).trim(), review: String(r[2] || '').trim() }));
+      const loaded = parseStaffRows(usersData);
       if(loaded.length > 0){
         STAFF = loaded;
         localStorage.setItem('cache_staff', JSON.stringify(STAFF));
@@ -1965,9 +1965,29 @@ function parseRows(values){
   const headers = values[0].map(h => String(h).trim());
   return values.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h,i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    headers.forEach((h,i) => {
+      if(!h) return;
+      const value = row[i] !== undefined ? row[i] : '';
+      obj[h] = value;
+      obj[h.toLowerCase()] = value;
+      obj[normalizeHeaderKey(h)] = value;
+    });
     return obj;
   }).filter(o => Object.values(o).some(v => v !== '' && v !== null && v !== undefined));
+}
+
+function parseStaffRows(values){
+  if(!values || values.length === 0) return [];
+  const firstPin = String((values[0] && values[0][1]) || '').trim();
+  const hasHeader = firstPin === '' || isNaN(firstPin);
+  const rows = hasHeader ? values.slice(1) : values;
+  return rows
+    .filter(r => r[0] && r[1] && /^\d{4}$/.test(String(r[1]).trim()))
+    .map(r => ({
+      name: String(r[0]).trim(),
+      pin: String(r[1]).trim(),
+      review: String(r[2] || '').trim()
+    }));
 }
 
 function syncFromHearings(){
@@ -1997,6 +2017,11 @@ function syncFromHearings(){
 
 function showLoadingStats(){
   ['stat-total','stat-today','stat-action'].forEach(id => $(id).textContent = '—');
+  const homeProgress = $('home-progress');
+  if(homeProgress) homeProgress.innerHTML = `<div class="daily-progress">
+    <div class="row"><span>Today's progress</span><span class="count">Loading...</span></div>
+    <div class="bar"><div class="fill" style="width:0%"></div></div>
+  </div>`;
 }
 
 function showError(msg){
@@ -2546,7 +2571,7 @@ function renderAction(){
    CASE DETAIL
    ====================================== */
 function openCase(id){
-  const c = CASES.find(x => String(getField(x,'Case ID')).trim() === String(id).trim());
+  const c = findCaseById(id);
   if(!c){ toast('Case not found'); return; }
   show('screen-detail');
   renderDetail(c);
@@ -3080,6 +3105,8 @@ function generatePendingPDF(){
    ====================================== */
 function openSettings(){
   $('settings-user-name').textContent = getCurrentUser() || '—';
+  const versionLabel = $('app-version-label');
+  if(versionLabel) versionLabel.textContent = `Chamber Diary · ${APP_VERSION}`;
   $('settings-modal').classList.add('active');
 }
 function closeSettings(){ $('settings-modal').classList.remove('active'); }
