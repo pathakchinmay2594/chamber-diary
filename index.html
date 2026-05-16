@@ -11,8 +11,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 :root{
@@ -111,7 +109,7 @@ a{color:var(--primary);text-decoration:none}
   padding-top:max(14px, env(safe-area-inset-top));
 }
 .top-header .logo{
-  display:flex;align-items:center;gap:10px;flex:1;
+  display:flex;align-items:center;gap:10px;flex:1;min-width:0;
 }
 .top-header .logo-icon{
   width:32px;height:32px;
@@ -126,8 +124,11 @@ a{color:var(--primary);text-decoration:none}
   font-weight:600;
   color:var(--primary);
   letter-spacing:0.3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-.top-header .actions{display:flex;gap:6px}
+.top-header .actions{display:flex;gap:6px;align-items:center}
 .header-review{
   border:1px solid var(--outline-variant);
   background:var(--surface-container-low);
@@ -141,6 +142,10 @@ a{color:var(--primary);text-decoration:none}
   background:var(--primary);
   color:var(--on-primary);
   border-color:var(--primary);
+}
+.header-review.lang-toggle{
+  min-width:42px;
+  padding-inline:10px;
 }
 .top-header .icon-btn{
   width:38px;height:38px;
@@ -424,7 +429,7 @@ a{color:var(--primary);text-decoration:none}
   margin:6px 0 5px;
 }
 .case-card.compact .meta{gap:4px;font-size:12px}
-.case-card.compact .actions{margin-top:10px}
+.case-card.compact .actions{margin-top:8px}
 .case-card.compact .btn-update{padding:9px 12px}
 .case-card:active{transform:scale(0.99)}
 .case-card.urgent{
@@ -459,6 +464,41 @@ a{color:var(--primary);text-decoration:none}
   gap:10px;margin-bottom:10px;
 }
 .case-card .pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.card-tools{
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-end;
+  gap:6px;
+  flex-shrink:0;
+}
+.card-tool{
+  border:1px solid var(--outline-variant);
+  background:#fff;
+  color:var(--primary);
+  min-width:36px;
+  height:32px;
+  padding:0 9px;
+  border-radius:9px;
+  font-size:12px;
+  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  box-shadow:var(--shadow-sm);
+  white-space:nowrap;
+}
+.card-tool:active{transform:scale(0.96)}
+.card-tool.primary{
+  background:var(--primary);
+  color:var(--on-primary);
+  border-color:var(--primary);
+}
+.card-tool.note{
+  background:var(--tertiary-container);
+  color:var(--tertiary);
+  border-color:rgba(56,102,102,0.18);
+}
 .pill{
   display:inline-flex;align-items:center;
   font-size:10px;font-weight:700;
@@ -805,6 +845,32 @@ a{color:var(--primary);text-decoration:none}
   font-style:italic;
   color:var(--primary);
   font-size:15px;
+}
+.detail-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:14px;
+}
+.detail-actions .note-primary{
+  grid-column:1 / -1;
+  background:var(--tertiary);
+  color:#fff;
+  border-color:var(--tertiary);
+  font-size:14px;
+}
+.note-panel{
+  padding-top:12px;
+  padding-bottom:12px;
+  background:rgba(188,235,236,0.28);
+  border-bottom:1px solid rgba(56,102,102,0.12);
+}
+.note-panel .field{
+  border:none;
+  padding:10px 12px;
+  background:#fff;
+  border-radius:10px;
+  box-shadow:var(--shadow-sm);
 }
 
 .field-grid{padding:18px 20px;display:flex;flex-direction:column;gap:12px}
@@ -1226,7 +1292,8 @@ a{color:var(--primary);text-decoration:none}
         <span class="logo-text">Chamber Diary</span>
       </div>
       <div class="actions">
-        <button class="header-review" onclick="openReviewModal()">Review</button>
+        <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+        <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
         <button class="icon-btn" onclick="loadAll(true)" title="Refresh">↻</button>
         <button class="icon-btn" onclick="openSettings()" title="Settings">⚙</button>
       </div>
@@ -1234,7 +1301,7 @@ a{color:var(--primary);text-decoration:none}
 
     <div class="greeting">
       <div class="label" id="greeting-day">— —</div>
-      <h2>Good <span id="greeting-time">day</span><span id="greeting-name"></span></h2>
+      <h2><span id="greeting-prefix">Good</span> <span id="greeting-time">day</span><span id="greeting-name"></span></h2>
       <div class="date-sub" id="greeting-date">—</div>
     </div>
 
@@ -1243,15 +1310,15 @@ a{color:var(--primary);text-decoration:none}
     <div class="stats-row">
       <div class="stat-card" onclick="goCases()">
         <div class="num" id="stat-total">—</div>
-        <div class="lbl">Total Cases</div>
+        <div class="lbl" data-i18n="totalCases">Total Cases</div>
       </div>
       <div class="stat-card" onclick="goToday()">
         <div class="num" id="stat-today">—</div>
-        <div class="lbl">Today</div>
+        <div class="lbl" data-i18n="today">Today</div>
       </div>
       <div class="stat-card alert" onclick="goAction()">
         <div class="num" id="stat-action">—</div>
-        <div class="lbl">Pending</div>
+        <div class="lbl" data-i18n="pending">Pending</div>
       </div>
     </div>
 
@@ -1259,8 +1326,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="menu-card" onclick="goToday()">
         <div class="icon">☀</div>
         <div class="text">
-          <div class="t">Today's Diary</div>
-          <div class="s">All matters listed today</div>
+          <div class="t" data-diary-label>Today's Diary</div>
+          <div class="s" data-i18n="todayDiarySub">All matters listed today</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1268,8 +1335,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="menu-card urgent" onclick="goAction()">
         <div class="icon">⚠</div>
         <div class="text">
-          <div class="t">Action Needed <span class="badge" id="action-count" style="display:none">0</span></div>
-          <div class="s">Past hearings missing next date</div>
+          <div class="t"><span data-i18n="actionNeeded">Action Needed</span> <span class="badge" id="action-count" style="display:none">0</span></div>
+          <div class="s" data-i18n="actionNeededSub">Past hearings missing next date</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1277,8 +1344,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="menu-card" onclick="goDateView()">
         <div class="icon">📅</div>
         <div class="text">
-          <div class="t">Search by Date</div>
-          <div class="s">Pick any date — past or future</div>
+          <div class="t" data-i18n="searchByDate">Search by Date</div>
+          <div class="s" data-i18n="searchByDateSub">Pick any date — past or future</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1286,8 +1353,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="menu-card" onclick="goWeek()">
         <div class="icon">🗓</div>
         <div class="text">
-          <div class="t">Week View</div>
-          <div class="s">Browse any 7-day period</div>
+          <div class="t" data-i18n="weekView">Week View</div>
+          <div class="s" data-i18n="weekViewSub">Browse any 7-day period</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1295,17 +1362,8 @@ a{color:var(--primary);text-decoration:none}
       <div class="menu-card" onclick="goCases()">
         <div class="icon">📋</div>
         <div class="text">
-          <div class="t">All Cases</div>
-          <div class="s">Browse the full register</div>
-        </div>
-        <div class="arrow">›</div>
-      </div>
-
-      <div class="menu-card" onclick="generatePendingPDF()">
-        <div class="icon">🖨</div>
-        <div class="text">
-          <div class="t">Print &amp; Share PDF</div>
-          <div class="s">Today's cases + pending list</div>
+          <div class="t" data-i18n="allCases">All Cases</div>
+          <div class="s" data-i18n="allCasesSub">Browse the full register</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1317,7 +1375,8 @@ a{color:var(--primary);text-decoration:none}
     <div class="top-header">
       <button class="back-btn" onclick="goHome()">‹</button>
       <div class="logo"><span class="logo-text" id="today-title">Today's Diary</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
     </div>
     <div id="today-content"></div>
   </div>
@@ -1326,8 +1385,9 @@ a{color:var(--primary);text-decoration:none}
   <div id="screen-action" class="screen">
     <div class="top-header">
       <button class="back-btn" onclick="goHome()">‹</button>
-      <div class="logo"><span class="logo-text">Action Needed</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
+      <div class="logo"><span class="logo-text" data-i18n="actionNeeded">Action Needed</span></div>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
     </div>
     <div id="action-content"></div>
   </div>
@@ -1336,8 +1396,9 @@ a{color:var(--primary);text-decoration:none}
   <div id="screen-date" class="screen">
     <div class="top-header">
       <button class="back-btn" onclick="goHome()">‹</button>
-      <div class="logo"><span class="logo-text" id="date-screen-title">Search by Date</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
+      <div class="logo"><span class="logo-text" id="date-screen-title" data-i18n="searchByDate">Search by Date</span></div>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
     </div>
     <div class="date-picker-card">
       <label>Select date</label>
@@ -1356,8 +1417,9 @@ a{color:var(--primary);text-decoration:none}
   <div id="screen-week" class="screen">
     <div class="top-header">
       <button class="back-btn" onclick="goHome()">‹</button>
-      <div class="logo"><span class="logo-text">Week View</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
+      <div class="logo"><span class="logo-text" data-i18n="weekView">Week View</span></div>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
     </div>
     <div class="date-picker-card">
       <label>Week starting</label>
@@ -1375,12 +1437,13 @@ a{color:var(--primary);text-decoration:none}
   <div id="screen-cases" class="screen">
     <div class="top-header">
       <button class="back-btn" onclick="goHome()">‹</button>
-      <div class="logo"><span class="logo-text">All Cases</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
-      <button class="header-review primary" onclick="openAddCaseModal()">Add</button>
+      <div class="logo"><span class="logo-text" data-i18n="allCases">All Cases</span></div>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
+      <button class="header-review primary" onclick="openAddCaseModal()" data-i18n="add">Add</button>
     </div>
     <div class="search-wrap">
-      <input class="search-input" id="search-input" placeholder="Search title, client, court, ID..." oninput="renderCases()">
+      <input class="search-input" id="search-input" placeholder="Search title, client, court, ID..." data-i18n-placeholder="searchPlaceholder" oninput="renderCases()">
     </div>
     <div id="cases-list" class="list"></div>
   </div>
@@ -1389,8 +1452,10 @@ a{color:var(--primary);text-decoration:none}
   <div id="screen-detail" class="screen">
     <div class="top-header">
       <button class="back-btn" onclick="backFromDetail()">‹</button>
-      <div class="logo"><span class="logo-text">Case Details</span></div>
-      <button class="header-review" onclick="openReviewModal()">Review</button>
+      <div class="logo"><span class="logo-text" data-i18n="caseDetails">Case Details</span></div>
+      <button class="header-review primary" onclick="openCurrentCaseNote()" data-i18n="note">Note</button>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
     </div>
     <div id="detail-content"></div>
   </div>
@@ -1631,19 +1696,19 @@ a{color:var(--primary);text-decoration:none}
 <nav class="bottom-nav hidden" id="bottom-nav">
   <button class="nav-tab" id="nav-home" onclick="goHome()">
     <div class="nav-icon">🏠</div>
-    <div class="nav-label">Home</div>
+    <div class="nav-label" data-i18n="home">Home</div>
   </button>
   <button class="nav-tab" id="nav-today" onclick="goToday()">
     <div class="nav-icon">☀</div>
-    <div class="nav-label">Today</div>
+    <div class="nav-label" data-i18n="today">Today</div>
   </button>
   <button class="nav-tab" id="nav-action" onclick="goAction()">
     <div class="nav-icon">⚠</div>
-    <div class="nav-label">Pending</div>
+    <div class="nav-label" data-i18n="pending">Pending</div>
   </button>
   <button class="nav-tab" id="nav-cases" onclick="goCases()">
     <div class="nav-icon">📋</div>
-    <div class="nav-label">Cases</div>
+    <div class="nav-label" data-i18n="cases">Cases</div>
   </button>
 </nav>
 
@@ -1657,7 +1722,7 @@ const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBj
 const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1694,7 +1759,56 @@ let detailFromScreen = 'home';
 let currentUpdateEntry = null;
 let currentEditCaseId = '';
 let currentNoteCaseId = '';
+let currentDetailCaseId = '';
 let CASE_NOTE_CACHE = {};
+let APP_LANG = localStorage.getItem('chamber_lang') || 'en';
+
+const I18N = {
+  en: {
+    review:'Review', add:'Add', note:'Note', myNote:'My Note', home:'Home', today:'Today',
+    pending:'Pending', cases:'Cases', totalCases:'Total Cases', todayDiary:"Today's Diary",
+    tomorrowDiary:"Tomorrow's Diary", todayDiarySub:'All matters listed today',
+    actionNeeded:'Action Needed', actionNeededSub:'Past hearings missing next date',
+    searchByDate:'Search by Date', searchByDateSub:'Pick any date - past or future',
+    weekView:'Week View', weekViewSub:'Browse any 7-day period', allCases:'All Cases',
+    allCasesSub:'Browse the full register', caseDetails:'Case Details',
+    searchPlaceholder:'Search title, client, court, ID...', update:'Update',
+    updateHearing:'Update Hearing', editUpdate:'Edit Update', updateStatus:'Update Status',
+    favourite:'Add Favourite', removeFavourite:'Remove Favourite',
+    editCaseDetails:'Edit Case Details', caseNumber:'Case No.', court:'Court',
+    next:'Next', by:'By', section:'Section', attended:'Attended', order:'Order',
+    lastHearingDate:'Last Hearing Date', hearingHistory:'Hearing History',
+    noPersonalNote:'No personal note yet.', loading:'Loading...', saveNote:'Save Note', saved:'Saved',
+    languageChanged:'Language changed', diary:'Diary', todayProgress:"Today's progress",
+    tomorrowProgress:"Tomorrow's progress", casesUpdated:'cases updated',
+    unfinishedToday:'unfinished for today', unfinishedTomorrow:'unfinished for tomorrow',
+    session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked'
+  },
+  hi: {
+    review:'समीक्षा', add:'जोड़ें', note:'नोट', myNote:'मेरा नोट', home:'होम', today:'आज',
+    pending:'बाकी', cases:'केस', totalCases:'कुल केस', todayDiary:'आज की डायरी',
+    tomorrowDiary:'कल की डायरी', todayDiarySub:'आज सूचीबद्ध सभी मामले',
+    actionNeeded:'कार्य बाकी', actionNeededSub:'पुरानी सुनवाई में अगली तारीख खाली',
+    searchByDate:'तारीख से खोजें', searchByDateSub:'पिछली या आगे की कोई भी तारीख चुनें',
+    weekView:'सप्ताह', weekViewSub:'7 दिन का दृश्य देखें', allCases:'सभी केस',
+    allCasesSub:'पूरा रजिस्टर देखें', caseDetails:'केस विवरण',
+    searchPlaceholder:'शीर्षक, पक्षकार, कोर्ट, ID खोजें...', update:'अपडेट',
+    updateHearing:'सुनवाई अपडेट', editUpdate:'अपडेट बदलें', updateStatus:'स्थिति अपडेट',
+    favourite:'फेवरेट जोड़ें', removeFavourite:'फेवरेट हटाएं',
+    editCaseDetails:'केस विवरण बदलें', caseNumber:'केस नं.', court:'कोर्ट',
+    next:'अगली', by:'द्वारा', section:'धारा', attended:'हाजिर', order:'आदेश',
+    lastHearingDate:'पिछली सुनवाई', hearingHistory:'सुनवाई इतिहास',
+    noPersonalNote:'अभी कोई निजी नोट नहीं है.', loading:'लोड हो रहा है...', saveNote:'नोट सेव करें', saved:'सेव हुआ',
+    languageChanged:'भाषा बदल गई', diary:'डायरी', todayProgress:'आज की प्रगति',
+    tomorrowProgress:'कल की प्रगति', casesUpdated:'केस अपडेट',
+    unfinishedToday:'आज के लिए बाकी', unfinishedTomorrow:'कल के लिए बाकी',
+    session:'सेशन', family:'फैमिली', lower:'लोअर', unmarked:'अनमार्क्ड'
+  }
+};
+
+function t(key){
+  return (I18N[APP_LANG] && I18N[APP_LANG][key]) || I18N.en[key] || key;
+}
 
 /* ======================================
    UTILS
@@ -1782,7 +1896,7 @@ function getDiaryDateISO(){
   return d.getHours() >= 19 ? addDaysISO(iso, 1) : iso;
 }
 function getDiaryLabel(){
-  return getDiaryDateISO() === todayISO() ? "Today's Diary" : "Tomorrow's Diary";
+  return getDiaryDateISO() === todayISO() ? t('todayDiary') : t('tomorrowDiary');
 }
 function fmtPhone(p){
   if(!p) return '';
@@ -1913,6 +2027,7 @@ function show(id){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   const navId = map[id];
   if(navId) $(navId).classList.add('active');
+  applyLanguage();
 }
 
 function goHome(){ show('screen-home'); updateGreeting(); updateStats(); }
@@ -1927,7 +2042,7 @@ function goAction(){ detailFromScreen = 'action'; show('screen-action'); renderA
 function goDateView(){
   detailFromScreen = 'date';
   show('screen-date');
-  $('date-screen-title').textContent = 'Search by Date';
+  $('date-screen-title').textContent = t('searchByDate');
   if(!$('date-input').value) $('date-input').value = todayISO();
   renderDateView();
 }
@@ -1944,6 +2059,53 @@ function backFromDetail(){
   else if(detailFromScreen === 'week'){ show('screen-week'); renderWeek(); }
   else if(detailFromScreen === 'action'){ show('screen-action'); renderAction(); }
   else goHome();
+}
+
+function applyLanguage(){
+  document.documentElement.lang = APP_LANG === 'hi' ? 'hi' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
+  });
+  document.querySelectorAll('[data-lang-toggle]').forEach(el => {
+    el.textContent = APP_LANG === 'hi' ? 'EN' : 'हिंदी';
+    el.title = APP_LANG === 'hi' ? 'Switch to English' : 'हिंदी में बदलें';
+  });
+  document.querySelectorAll('[data-diary-label]').forEach(el => {
+    el.textContent = getDiaryLabel();
+  });
+  const todayTitle = $('today-title');
+  if(todayTitle) todayTitle.textContent = getDiaryLabel();
+}
+
+function renderActiveScreen(){
+  const active = document.querySelector('.screen.active');
+  if(!active) return;
+  if(active.id === 'screen-home'){ updateGreeting(); updateStats(); }
+  else if(active.id === 'screen-cases') renderCases();
+  else if(active.id === 'screen-today') renderToday();
+  else if(active.id === 'screen-action') renderAction();
+  else if(active.id === 'screen-date') renderDateView();
+  else if(active.id === 'screen-week') renderWeek();
+  else if(active.id === 'screen-detail' && currentDetailCaseId){
+    const c = findCaseById(currentDetailCaseId);
+    if(c) renderDetail(c);
+  }
+}
+
+function toggleLanguage(){
+  APP_LANG = APP_LANG === 'hi' ? 'en' : 'hi';
+  localStorage.setItem('chamber_lang', APP_LANG);
+  applyLanguage();
+  renderActiveScreen();
+  toast(t('languageChanged'), 'success');
+}
+
+function openCurrentCaseNote(){
+  if(currentDetailCaseId) openCaseNoteModal(currentDetailCaseId);
+  else toast('Open a case first', 'error');
 }
 
 // FIX P0-1: parse local not UTC
@@ -1967,15 +2129,25 @@ function setWeek(offset){
    ====================================== */
 function updateGreeting(){
   const h = new Date().getHours();
-  $('greeting-time').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  $('greeting-prefix').textContent = APP_LANG === 'hi' ? 'नमस्ते' : 'Good';
+  const timeWord = h < 12
+    ? (APP_LANG === 'hi' ? 'सुबह' : 'morning')
+    : h < 17
+      ? (APP_LANG === 'hi' ? 'दोपहर' : 'afternoon')
+      : (APP_LANG === 'hi' ? 'शाम' : 'evening');
+  $('greeting-time').textContent = timeWord;
   const user = getCurrentUser();
   if(user){
     $('greeting-name').textContent = `, ${user.split(' ')[0]}`;
   }
-  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = APP_LANG === 'hi'
+    ? ['रवि','सोम','मंगल','बुध','गुरु','शुक्र','शनि']
+    : ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = APP_LANG === 'hi'
+    ? ['जन','फर','मार्च','अप्रै','मई','जून','जुल','अग','सित','अक्टू','नव','दिस']
+    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const today = new Date();
-  $('greeting-day').textContent = `${days[today.getDay()]} · TODAY`;
+  $('greeting-day').textContent = `${days[today.getDay()]} · ${APP_LANG === 'hi' ? 'आज' : 'TODAY'}`;
   $('greeting-date').textContent = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
 }
 
@@ -2118,7 +2290,7 @@ function showLoadingStats(){
   ['stat-total','stat-today','stat-action'].forEach(id => $(id).textContent = '—');
   const homeProgress = $('home-progress');
   if(homeProgress) homeProgress.innerHTML = `<div class="daily-progress">
-    <div class="row"><span>${getDiaryDateISO() === todayISO() ? "Today's progress" : "Tomorrow's progress"}</span><span class="count">Loading...</span></div>
+    <div class="row"><span>${getDiaryDateISO() === todayISO() ? t('todayProgress') : t('tomorrowProgress')}</span><span class="count">${t('loading')}</span></div>
     <div class="bar"><div class="fill" style="width:0%"></div></div>
   </div>`;
 }
@@ -2171,7 +2343,7 @@ function getCourtType(c){
 }
 
 function courtTypeLabel(type){
-  return ({ session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked' })[type] || 'Unmarked';
+  return ({ session:t('session'), family:t('family'), lower:t('lower'), unmarked:t('unmarked') })[type] || t('unmarked');
 }
 
 function courtTypePill(type){
@@ -2198,12 +2370,12 @@ function getTodayProgress(){
 function dailyProgressHTML(){
   const p = getTodayProgress();
   const pct = p.total ? Math.round((p.updated / p.total) * 100) : 0;
-  const label = getDiaryDateISO() === todayISO() ? "Today's progress" : "Tomorrow's progress";
-  const pendingLabel = getDiaryDateISO() === todayISO() ? 'unfinished for today' : 'unfinished for tomorrow';
+  const label = getDiaryDateISO() === todayISO() ? t('todayProgress') : t('tomorrowProgress');
+  const pendingLabel = getDiaryDateISO() === todayISO() ? t('unfinishedToday') : t('unfinishedTomorrow');
   return `<div class="daily-progress">
     <div class="row">
       <span>${label}</span>
-      <span class="count">${p.updated}/${p.total} cases updated</span>
+      <span class="count">${p.updated}/${p.total} ${t('casesUpdated')}</span>
     </div>
     <div class="row" style="margin-top:3px">
       <span>${p.pending} ${pendingLabel}</span>
@@ -2215,10 +2387,10 @@ function dailyProgressHTML(){
 
 function groupEntriesByCourtType(entries){
   const groups = [
-    { type:'session', label:'Session', entries:[] },
-    { type:'family', label:'Family', entries:[] },
-    { type:'lower', label:'Lower', entries:[] },
-    { type:'unmarked', label:'Unmarked', entries:[] }
+    { type:'session', label:courtTypeLabel('session'), entries:[] },
+    { type:'family', label:courtTypeLabel('family'), entries:[] },
+    { type:'lower', label:courtTypeLabel('lower'), entries:[] },
+    { type:'unmarked', label:courtTypeLabel('unmarked'), entries:[] }
   ];
   const byType = Object.fromEntries(groups.map(g => [g.type, g]));
   entries.forEach(e => {
@@ -2252,7 +2424,7 @@ function renderGroupedEntries(entries, allowUpdate){
     html += `<div class="type-section">
       <div class="type-section-head type-${group.type}-head">
         <div class="name">${group.label}</div>
-        <div class="sub">${updated}/${group.entries.length} updated</div>
+        <div class="sub">${updated}/${group.entries.length} ${t('casesUpdated')}</div>
       </div>`;
     group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate));
     html += `</div>`;
@@ -2414,13 +2586,16 @@ function caseCard(c){
           ${courtTypePill(courtType)}
           <span class="pill pill-id">${id}</span>
         </div>
-        <button class="fav-btn ${favorite ? 'active' : ''}" data-action="toggle-favorite" data-case="${id}" title="${favorite ? 'Remove from favourites' : 'Add to favourites'}">${favorite ? '★' : '☆'}</button>
+        <div class="card-tools">
+          <button class="card-tool note" data-action="case-note" data-case="${id}" title="${t('myNote')}">📝 ${t('note')}</button>
+          <button class="fav-btn ${favorite ? 'active' : ''}" data-action="toggle-favorite" data-case="${id}" title="${favorite ? 'Remove from favourites' : 'Add to favourites'}">${favorite ? '★' : '☆'}</button>
+        </div>
       </div>
       <h3>${title}</h3>
       <div class="meta">
-        ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${caseNumber}</span></div>` : ''}
-        ${section ? `<div class="meta-row"><span class="lbl">Section</span><span class="val">${section}</span></div>` : ''}
-        ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${court}</span></div>` : ''}
+        ${caseNumber ? `<div class="meta-row"><span class="lbl">${t('caseNumber')}</span><span class="val">${caseNumber}</span></div>` : ''}
+        ${section ? `<div class="meta-row"><span class="lbl">${t('section')}</span><span class="val">${section}</span></div>` : ''}
+        ${court ? `<div class="meta-row"><span class="lbl">${t('court')}</span><span class="val">${court}</span></div>` : ''}
       </div>
     </div>
   `;
@@ -2556,25 +2731,27 @@ function diaryCard(h, type, allowUpdate){
           ${updatedToday ? '<span class="pill pill-updated">UPDATED</span>' : ''}
           <span class="pill pill-id">${escapeHTML(caseId)}</span>
         </div>
+        <div class="card-tools">
+          <button class="card-tool note" data-action="case-note" data-case="${escapeHTML(caseId)}" title="${t('myNote')}">📝 ${t('note')}</button>
+          ${allowUpdate ? `
+            <button class="card-tool primary"
+              data-action="update-hearing"
+              data-entry="${escapeHTML(entryId)}"
+              data-case="${escapeHTML(caseId)}"
+              data-title="${escapeHTML(title)}"
+              data-last="${escapeHTML(fmtDate(getField(h,'Hearing Date')) || todayISO())}"
+              title="${isHeld && hasNext ? t('editUpdate') : t('updateHearing')}">
+              ✎
+            </button>` : ''}
+        </div>
       </div>
       <h3 data-action="open-case" data-case="${escapeHTML(caseId)}">${escapeHTML(title)}</h3>
       <div class="meta" data-action="open-case" data-case="${escapeHTML(caseId)}">
-        ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
-        ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
-        ${nextOn ? `<div class="meta-row"><span class="lbl">Next</span><span class="val" style="color:var(--primary);font-weight:600">${escapeHTML(nextOn)}</span></div>` : ''}
-        ${person ? `<div class="meta-row"><span class="lbl">By</span><span class="val">${escapeHTML(person)}</span></div>` : ''}
+        ${caseNumber ? `<div class="meta-row"><span class="lbl">${t('caseNumber')}</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
+        ${court ? `<div class="meta-row"><span class="lbl">${t('court')}</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
+        ${nextOn ? `<div class="meta-row"><span class="lbl">${t('next')}</span><span class="val" style="color:var(--primary);font-weight:600">${escapeHTML(nextOn)}</span></div>` : ''}
+        ${person ? `<div class="meta-row"><span class="lbl">${t('by')}</span><span class="val">${escapeHTML(person)}</span></div>` : ''}
       </div>
-      ${allowUpdate ? `
-        <div class="actions">
-          <button class="btn-update ${!isHeld?'scheduled':''}"
-            data-action="update-hearing"
-            data-entry="${escapeHTML(entryId)}"
-            data-case="${escapeHTML(caseId)}"
-            data-title="${escapeHTML(title)}"
-            data-last="${escapeHTML(fmtDate(getField(h,'Hearing Date')) || todayISO())}">
-            ✎ ${isHeld && hasNext ? 'Edit Update' : 'Update Hearing'}
-          </button>
-        </div>` : ''}
     </div>
   `;
 }
@@ -2625,29 +2802,29 @@ function renderAction(){
               <span class="pill pill-urgent">PAST DUE</span>
               <span class="pill pill-id">${escapeHTML(caseId)}</span>
             </div>
-            ${overdueDays > 0 ? `<span class="pill pill-overdue">Overdue ${overdueDays}d</span>` : ''}
+            <div class="card-tools">
+              ${overdueDays > 0 ? `<span class="pill pill-overdue">Overdue ${overdueDays}d</span>` : ''}
+              <button class="card-tool note" data-action="case-note" data-case="${escapeHTML(caseId)}" title="${t('myNote')}">📝 ${t('note')}</button>
+              <button class="card-tool primary"
+                data-action="update-hearing"
+                data-entry="${escapeHTML(entryId)}"
+                data-case="${escapeHTML(caseId)}"
+                data-title="${escapeHTML(title)}"
+                data-last="${escapeHTML(lastDate)}"
+                title="${t('updateStatus')}">✎</button>
+            </div>
           </div>
           <h3 data-action="open-case" data-case="${escapeHTML(caseId)}">${escapeHTML(title)}</h3>
           <div class="meta" data-action="open-case" data-case="${escapeHTML(caseId)}">
-            ${caseNumber ? `<div class="meta-row"><span class="lbl">Case No.</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
-            ${section ? `<div class="meta-row"><span class="lbl">Section</span><span class="val">${escapeHTML(section)}</span></div>` : ''}
-            ${court ? `<div class="meta-row"><span class="lbl">Court</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
-            <div class="meta-row"><span class="lbl">Attended</span><span class="val"><strong>${escapeHTML(person)}</strong></span></div>
-            ${order ? `<div class="meta-row"><span class="lbl">Order</span><span class="val">${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}
+            ${caseNumber ? `<div class="meta-row"><span class="lbl">${t('caseNumber')}</span><span class="val">${escapeHTML(caseNumber)}</span></div>` : ''}
+            ${section ? `<div class="meta-row"><span class="lbl">${t('section')}</span><span class="val">${escapeHTML(section)}</span></div>` : ''}
+            ${court ? `<div class="meta-row"><span class="lbl">${t('court')}</span><span class="val">${escapeHTML(court)}</span></div>` : ''}
+            <div class="meta-row"><span class="lbl">${t('attended')}</span><span class="val"><strong>${escapeHTML(person)}</strong></span></div>
+            ${order ? `<div class="meta-row"><span class="lbl">${t('order')}</span><span class="val">${escapeHTML(String(order).substring(0,80))}</span></div>` : ''}
           </div>
           <div class="last-date-box">
-            <span class="lbl">Last Hearing Date</span>
+            <span class="lbl">${t('lastHearingDate')}</span>
             <span class="val">📅 ${escapeHTML(lastDate)}</span>
-          </div>
-          <div class="actions">
-            <button class="btn-update"
-              data-action="update-hearing"
-              data-entry="${escapeHTML(entryId)}"
-              data-case="${escapeHTML(caseId)}"
-              data-title="${escapeHTML(title)}"
-              data-last="${escapeHTML(lastDate)}">
-              ✎ Update Status
-            </button>
           </div>
         </div>
       `;
@@ -2669,6 +2846,7 @@ function openCase(id){
 
 function renderDetail(c){
   const cid = String(getField(c,'Case ID')).trim().toLowerCase();
+  currentDetailCaseId = getField(c,'Case ID') || '';
   const hearings = HEARINGS
     .filter(h => String(getField(h,'Case ID')).trim().toLowerCase() === cid)
     .sort((a,b) => {
@@ -2683,8 +2861,8 @@ function renderDetail(c){
   const favorite = isFavoriteCase(c);
 
   const fields = [
-    ['Case Number', getField(c,'case number')],
-    ['Section', getField(c,'Section')],
+    [t('caseNumber'), getField(c,'case number')],
+    [t('section'), getField(c,'Section')],
     ['Police Station', getField(c,'police station')],
     ['Client Name', getField(c,'Client Name')],
     ['Phone', phone ? `<a href="tel:${phone}">${phone}</a>` : ''],
@@ -2701,12 +2879,14 @@ function renderDetail(c){
       <span class="pill pill-id">${escapeHTML(getField(c,'Case ID') || '')}</span>
       <h2>${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}</h2>
       <div class="court">${escapeHTML(getField(c,'Court') || '')}</div>
-      <button class="btn-secondary" style="margin-top:12px" data-action="toggle-favorite" data-case="${escapeHTML(getField(c,'Case ID') || '')}">${favorite ? '★ Remove Favourite' : '☆ Add Favourite'}</button>
-      <button class="btn-secondary" style="margin-top:8px" data-action="case-note" data-case="${escapeHTML(getField(c,'Case ID') || '')}">My Note</button>
-      <button class="btn-secondary" style="margin-top:8px" data-action="edit-case" data-case="${escapeHTML(getField(c,'Case ID') || '')}">Edit Case Details</button>
+      <div class="detail-actions">
+        <button class="btn-secondary note-primary" data-action="case-note" data-case="${escapeHTML(getField(c,'Case ID') || '')}">📝 ${t('myNote')}</button>
+        <button class="btn-secondary" data-action="toggle-favorite" data-case="${escapeHTML(getField(c,'Case ID') || '')}">${favorite ? '★ ' + t('removeFavourite') : '☆ ' + t('favourite')}</button>
+        <button class="btn-secondary" data-action="edit-case" data-case="${escapeHTML(getField(c,'Case ID') || '')}">${t('editCaseDetails')}</button>
+      </div>
     </div>
-    <div class="field-grid" id="case-note-panel">
-      <div class="field"><div class="lbl">My Note</div><div class="val">Loading...</div></div>
+    <div class="field-grid note-panel" id="case-note-panel">
+      <div class="field"><div class="lbl">${t('myNote')}</div><div class="val">${t('loading')}</div></div>
     </div>
     <div class="field-grid">
   `;
@@ -2716,7 +2896,7 @@ function renderDetail(c){
   });
   html += `</div>`;
 
-  html += `<div class="section-title">Hearing History <span class="count">${hearings.length}</span></div>`;
+  html += `<div class="section-title">${t('hearingHistory')} <span class="count">${hearings.length}</span></div>`;
   if(hearings.length === 0){
     html += `<div class="empty"><div class="empty-icon">📜</div><div class="t">No hearings yet</div><div class="s">Add an entry in hearing_log to start tracking</div></div>`;
   } else {
@@ -2898,16 +3078,17 @@ async function loadCaseNoteForDetail(caseId){
   const user = getCurrentUser();
   const panel = $('case-note-panel');
   if(!panel || !user || !caseId) return;
+  panel.innerHTML = `<div class="field"><div class="lbl">${t('myNote')}</div><div class="val">${t('loading')}</div></div>`;
   try {
     const result = await postToScript({ action: 'getCaseNote', user, caseId });
     if(result.success){
       CASE_NOTE_CACHE[noteCacheKey(user, caseId)] = result.note || '';
-      panel.innerHTML = `<div class="field"><div class="lbl">My Note</div><div class="val">${result.note ? escapeHTML(result.note) : '<span style="color:var(--outline)">No personal note yet.</span>'}</div></div>`;
+      panel.innerHTML = `<div class="field"><div class="lbl">${t('myNote')}</div><div class="val">${result.note ? escapeHTML(result.note) : `<span style="color:var(--outline)">${t('noPersonalNote')}</span>`}</div></div>`;
     } else {
-      panel.innerHTML = `<div class="field"><div class="lbl">My Note</div><div class="val" style="color:var(--outline)">Could not load note.</div></div>`;
+      panel.innerHTML = `<div class="field"><div class="lbl">${t('myNote')}</div><div class="val" style="color:var(--outline)">Could not load note.</div></div>`;
     }
   } catch(err){
-    panel.innerHTML = `<div class="field"><div class="lbl">My Note</div><div class="val" style="color:var(--outline)">Could not load note.</div></div>`;
+    panel.innerHTML = `<div class="field"><div class="lbl">${t('myNote')}</div><div class="val" style="color:var(--outline)">Could not load note.</div></div>`;
   }
 }
 
@@ -2922,7 +3103,7 @@ function openCaseNoteModal(caseId){
     <div class="meta-line"><strong>Case</strong> ${escapeHTML(currentNoteCaseId)} · <strong>User</strong> ${escapeHTML(user)}</div>
   `;
   $('case-note-text').value = CASE_NOTE_CACHE[noteCacheKey(user, currentNoteCaseId)] || '';
-  $('case-note-submit-btn').textContent = 'Save Note';
+  $('case-note-submit-btn').textContent = t('saveNote');
   $('case-note-submit-btn').disabled = false;
   $('case-note-modal').classList.add('active');
   setTimeout(() => $('case-note-text').focus(), 250);
@@ -2957,13 +3138,13 @@ async function submitCaseNote(){
       await loadCaseNoteForDetail(currentNoteCaseId);
     } else {
       toast('Error: ' + (result.error || 'Unknown'), 'error');
-      btn.textContent = 'Save Note';
+      btn.textContent = t('saveNote');
       btn.disabled = false;
     }
   } catch(err){
     console.error(err);
     toast('Network error', 'error');
-    btn.textContent = 'Save Note';
+    btn.textContent = t('saveNote');
     btn.disabled = false;
   }
 }
@@ -3179,163 +3360,6 @@ async function submitReview(){
 }
 
 /* ======================================
-   PDF — FIX P0-11: column widths fit Legal portrait
-   ====================================== */
-function generatePendingPDF(){
-  if(!window.jspdf){ toast('PDF library not loaded', 'error'); return; }
-
-  const today = todayISO();
-  const todayEntries = [];
-  const rawTodayMap = {};
-
-  HEARINGS.forEach(h => {
-    const hdISO = toISODate(getField(h,'Hearing Date'));
-    const ndISO = toISODate(getField(h,'Next Date'));
-    const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
-    if(!cid) return;
-    if(hdISO === today || ndISO === today){
-      const matchType = hdISO === today ? 'held' : 'scheduled';
-      if(!rawTodayMap[cid] || (rawTodayMap[cid].matchType === 'scheduled' && matchType === 'held')){
-        rawTodayMap[cid] = { hearing: h, matchType };
-      }
-    }
-  });
-
-  Object.values(rawTodayMap).forEach(e => {
-    const cid = String(getField(e.hearing,'Case ID')).trim().toLowerCase();
-    const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === cid);
-    todayEntries.push({ hearing: e.hearing, case: c });
-  });
-
-  todayEntries.sort((a, b) => {
-    const ai = String(getField(a.case,'Case ID') || getField(a.hearing,'Case ID') || '').toLowerCase();
-    const bi = String(getField(b.case,'Case ID') || getField(b.hearing,'Case ID') || '').toLowerCase();
-    return ai.localeCompare(bi, undefined, {numeric:true});
-  });
-
-  const pendingCases = getPendingCases();
-  pendingCases.sort((a, b) => {
-    const ai = String(getField(a.case,'Case ID') || getField(a.hearing,'Case ID') || '').toLowerCase();
-    const bi = String(getField(b.case,'Case ID') || getField(b.hearing,'Case ID') || '').toLowerCase();
-    return ai.localeCompare(bi, undefined, {numeric:true});
-  });
-
-  if(todayEntries.length === 0 && pendingCases.length === 0){
-    toast('Nothing to print');
-    return;
-  }
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'legal' });
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const todayLong = fmtDateLong(new Date());
-
-    let pageAdded = false;
-
-    if(todayEntries.length > 0){
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text("Chamber Diary — Today's Cases", pageWidth/2, 15, {align:'center'});
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Generated: ${todayLong}`, pageWidth/2, 22, {align:'center'});
-      doc.setFontSize(9);
-      doc.text(`${todayEntries.length} case${todayEntries.length!==1?'s':''} listed today · ${fmtDate(today)}`, pageWidth/2, 28, {align:'center'});
-
-      const todayRows = todayEntries.map(({hearing, case: c}) => {
-        const caseId = getField(c,'Case ID') || getField(hearing,'Case ID') || '';
-        const court = String(getField(c,'Court')||'').trim();
-        const title = String(getField(c,'Case Title')||'').trim();
-        // FIX P1-23: truncate long titles
-        const fullName = (court ? `${court} — ${title}` : title).substring(0, 75);
-        return [caseId, fullName, '', '', ''];
-      });
-
-      doc.autoTable({
-        startY: 33,
-        head: [['Case ID', 'Court — Case Title', 'What Happened', 'Next Date', 'Who Brought']],
-        body: todayRows,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [85, 98, 76],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold', fontSize: 10, halign: 'center'
-        },
-        bodyStyles: {
-          fontSize: 9, cellPadding: 2, minCellHeight: 10, valign: 'middle', overflow: 'linebreak'
-        },
-        columnStyles: {
-          // FIX P0-11: 16+76+48+24+30 = 194mm ≤ 195.9mm available
-          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-          1: { cellWidth: 76 },
-          2: { cellWidth: 48 },
-          3: { cellWidth: 24, halign: 'center' },
-          4: { cellWidth: 30 }
-        },
-        margin: { top: 33, left: 10, right: 10 }
-      });
-      pageAdded = true;
-    }
-
-    if(pendingCases.length > 0){
-      if(pageAdded) doc.addPage();
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('Chamber Diary — Pending Cases', pageWidth/2, 15, {align:'center'});
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Generated: ${todayLong}`, pageWidth/2, 22, {align:'center'});
-      doc.setFontSize(9);
-      doc.text(`${pendingCases.length} old hearing${pendingCases.length!==1?'s':''} still awaiting next date`, pageWidth/2, 28, {align:'center'});
-
-      const pendingRows = pendingCases.map(({hearing, case: c}) => {
-        const caseId = getField(c,'Case ID') || getField(hearing,'Case ID') || '';
-        const court = String(getField(c,'Court')||'').trim();
-        const title = String(getField(c,'Case Title')||'').trim();
-        const fullName = (court ? `${court} — ${title}` : title).substring(0, 75);
-        const lastDate = getField(hearing,'Hearing Date') ? fmtDate(getField(hearing,'Hearing Date')) : '—';
-        return [caseId, fullName, lastDate, '', '', ''];
-      });
-
-      doc.autoTable({
-        startY: 33,
-        head: [['Case ID', 'Court — Case Title', 'Last Date', 'What Happened', 'Next Date', 'Who Brought']],
-        body: pendingRows,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [176, 0, 32],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold', fontSize: 10, halign: 'center'
-        },
-        bodyStyles: {
-          fontSize: 8.5, cellPadding: 2, minCellHeight: 10, valign: 'middle', overflow: 'linebreak'
-        },
-        columnStyles: {
-          // FIX P0-11: 16+66+22+40+22+28 = 194mm ≤ 195.9mm available
-          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-          1: { cellWidth: 66 },
-          2: { cellWidth: 22, halign: 'center', fontSize: 8 },
-          3: { cellWidth: 40 },
-          4: { cellWidth: 22, halign: 'center' },
-          5: { cellWidth: 28 }
-        },
-        margin: { top: 33, left: 10, right: 10 }
-      });
-    }
-
-    const fname = `chamber_diary_${todayISO()}.pdf`;
-    const totalCount = todayEntries.length + pendingCases.length;
-    doc.save(fname);
-    toast(`✓ PDF saved (${totalCount} cases)`, 'success');
-  } catch (err) {
-    console.error('PDF error:', err);
-    toast('PDF error: ' + (err.message || 'unknown'), 'error');
-  }
-}
-
-/* ======================================
    SETTINGS
    ====================================== */
 function openSettings(){
@@ -3451,6 +3475,7 @@ document.addEventListener('click', (e) => {
 /* ======================================
    INIT
    ====================================== */
+applyLanguage();
 updateGreeting();
 setInterval(updateGreeting, 5 * 60 * 1000); // FIX P1-22: every 5 min, not 1
 
