@@ -325,15 +325,15 @@ a{color:var(--primary);text-decoration:none}
 
 .stats-row{
   display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:8px;
   padding:0 20px 16px;
 }
 .stat-card{
   background:var(--surface-container-low);
   border:1px solid rgba(197,200,185,0.3);
   border-radius:var(--radius);
-  padding:14px 8px;
+  padding:12px 6px;
   text-align:center;
   cursor:pointer;
   transition:all 0.2s;
@@ -342,7 +342,7 @@ a{color:var(--primary);text-decoration:none}
 .stat-card.alert{border-left:3px solid var(--error)}
 .stat-card .num{
   font-family:var(--display);
-  font-size:30px;font-weight:600;
+  font-size:27px;font-weight:600;
   color:var(--primary);
   line-height:1;
 }
@@ -355,6 +355,8 @@ a{color:var(--primary);text-decoration:none}
   margin-top:6px;
   font-weight:600;
 }
+.stat-card.work{border-left:3px solid var(--tertiary)}
+.stat-card.work .num{color:var(--tertiary)}
 
 /* ============ MENU LIST ============ */
 .menu-list{padding:8px 20px 24px;display:flex;flex-direction:column;gap:10px}
@@ -420,13 +422,13 @@ a{color:var(--primary);text-decoration:none}
   transition:all 0.2s;
 }
 .case-card.compact{
-  padding:12px 14px;
+  padding:10px 12px;
   margin-bottom:8px;
 }
 .case-card.compact .head{margin-bottom:6px}
 .case-card.compact h3{
-  font-size:16.5px;
-  margin:6px 0 5px;
+  font-size:16px;
+  margin:4px 0 4px;
 }
 .case-card.compact .meta{gap:4px;font-size:12px}
 .case-card.compact .actions{margin-top:8px}
@@ -588,14 +590,14 @@ a{color:var(--primary);text-decoration:none}
   font-size:13px;
 }
 .case-card .next-pill{
-  position:absolute;top:12px;right:58px;
+  display:inline-flex;
+  width:max-content;
   font-family:var(--display);
   font-size:11px;font-weight:600;
   color:var(--primary);
   background:var(--primary-container);
   padding:4px 9px;border-radius:8px;
-  pointer-events:none;
-  z-index:1;
+  margin-top:4px;
 }
 .case-card .actions{
   display:flex;gap:8px;margin-top:14px;
@@ -1146,6 +1148,70 @@ a{color:var(--primary);text-decoration:none}
   margin-top:10px;
 }
 
+/* ============ WORK LIST ============ */
+.work-compose{
+  padding:16px 20px 10px;
+  display:flex;
+  gap:8px;
+}
+.work-compose input{
+  flex:1;
+  background:#fff;
+  border:1px solid var(--outline-variant);
+  border-radius:10px;
+  padding:12px 13px;
+  font-size:14px;
+  outline:none;
+}
+.work-compose input:focus{
+  border-color:var(--tertiary);
+  box-shadow:0 0 0 3px rgba(56,102,102,0.1);
+}
+.work-compose button{
+  border:none;
+  background:var(--tertiary);
+  color:#fff;
+  border-radius:10px;
+  padding:0 14px;
+  font-weight:800;
+  min-width:54px;
+}
+.work-item{
+  background:var(--surface-container-low);
+  border:1px solid rgba(197,200,185,0.35);
+  border-left:4px solid var(--tertiary);
+  border-radius:var(--radius);
+  padding:12px;
+  margin:0 20px 8px;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+.work-item .body{flex:1;min-width:0}
+.work-item .task{
+  font-size:14px;
+  color:var(--on-surface);
+  line-height:1.35;
+  word-break:break-word;
+}
+.work-item .meta{
+  margin-top:4px;
+  font-size:10.5px;
+  color:var(--outline);
+  text-transform:uppercase;
+  letter-spacing:0.6px;
+}
+.work-item .done-btn{
+  border:1px solid var(--outline-variant);
+  background:#fff;
+  color:var(--tertiary);
+  border-radius:9px;
+  padding:8px 10px;
+  font-size:12px;
+  font-weight:800;
+  flex-shrink:0;
+}
+
 /* ============ TOAST ============ */
 .toast{
   position:fixed;
@@ -1314,11 +1380,15 @@ a{color:var(--primary);text-decoration:none}
       </div>
       <div class="stat-card" onclick="goToday()">
         <div class="num" id="stat-today">—</div>
-        <div class="lbl" data-i18n="today">Today</div>
+        <div class="lbl" data-diary-short-label>Today</div>
       </div>
       <div class="stat-card alert" onclick="goAction()">
         <div class="num" id="stat-action">—</div>
         <div class="lbl" data-i18n="pending">Pending</div>
+      </div>
+      <div class="stat-card work" onclick="goWork()">
+        <div class="num" id="stat-work">—</div>
+        <div class="lbl" data-i18n="work">Work</div>
       </div>
     </div>
 
@@ -1364,6 +1434,15 @@ a{color:var(--primary);text-decoration:none}
         <div class="text">
           <div class="t" data-i18n="allCases">All Cases</div>
           <div class="s" data-i18n="allCasesSub">Browse the full register</div>
+        </div>
+        <div class="arrow">›</div>
+      </div>
+
+      <div class="menu-card" onclick="goWork()">
+        <div class="icon">✓</div>
+        <div class="text">
+          <div class="t" data-i18n="workList">Work List</div>
+          <div class="s" data-i18n="workListSub">Shared pending work for everyone</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1446,6 +1525,21 @@ a{color:var(--primary);text-decoration:none}
       <input class="search-input" id="search-input" placeholder="Search title, client, court, ID..." data-i18n-placeholder="searchPlaceholder" oninput="renderCases()">
     </div>
     <div id="cases-list" class="list"></div>
+  </div>
+
+  <!-- ======= WORK LIST ======= -->
+  <div id="screen-work" class="screen">
+    <div class="top-header">
+      <button class="back-btn" onclick="goHome()">‹</button>
+      <div class="logo"><span class="logo-text" data-i18n="workList">Work List</span></div>
+      <button class="header-review" onclick="openReviewModal()" data-i18n="review">Review</button>
+      <button class="header-review lang-toggle" onclick="toggleLanguage()" data-lang-toggle>हिंदी</button>
+    </div>
+    <div class="work-compose">
+      <input type="text" id="work-input" data-i18n-placeholder="workPlaceholder" placeholder="Add pending work...">
+      <button id="work-add-btn" onclick="submitWorkItem()" data-i18n="add">Add</button>
+    </div>
+    <div id="work-list"></div>
   </div>
 
   <!-- ======= DETAIL ======= -->
@@ -1700,7 +1794,7 @@ a{color:var(--primary);text-decoration:none}
   </button>
   <button class="nav-tab" id="nav-today" onclick="goToday()">
     <div class="nav-icon">☀</div>
-    <div class="nav-label" data-i18n="today">Today</div>
+        <div class="nav-label" data-diary-short-label>Today</div>
   </button>
   <button class="nav-tab" id="nav-action" onclick="goAction()">
     <div class="nav-icon">⚠</div>
@@ -1722,7 +1816,7 @@ const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBj
 const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v24';
+const APP_VERSION = 'v25';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1761,6 +1855,7 @@ let currentEditCaseId = '';
 let currentNoteCaseId = '';
 let currentDetailCaseId = '';
 let CASE_NOTE_CACHE = {};
+let WORK_ITEMS = [];
 let APP_LANG = localStorage.getItem('chamber_lang') || 'en';
 
 const I18N = {
@@ -1782,7 +1877,10 @@ const I18N = {
     languageChanged:'Language changed', diary:'Diary', todayProgress:"Today's progress",
     tomorrowProgress:"Tomorrow's progress", casesUpdated:'cases updated',
     unfinishedToday:'unfinished for today', unfinishedTomorrow:'unfinished for tomorrow',
-    session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked'
+    session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked',
+    work:'Work', workList:'Work List', workListSub:'Shared pending work for everyone',
+    workPlaceholder:'Add pending work...', noWorkItems:'No pending work', closeWork:'Close',
+    workAdded:'Work item added', workClosed:'Work item closed', tomorrowShort:'Tomorrow'
   },
   hi: {
     review:'समीक्षा', add:'जोड़ें', note:'नोट', myNote:'मेरा नोट', home:'होम', today:'आज',
@@ -1802,7 +1900,11 @@ const I18N = {
     languageChanged:'भाषा बदल गई', diary:'डायरी', todayProgress:'आज की प्रगति',
     tomorrowProgress:'कल की प्रगति', casesUpdated:'केस अपडेट',
     unfinishedToday:'आज के लिए बाकी', unfinishedTomorrow:'कल के लिए बाकी',
-    session:'सेशन', family:'फैमिली', lower:'लोअर', unmarked:'अनमार्क्ड'
+    session:'सेशन', family:'फैमिली', lower:'लोअर', unmarked:'अनमार्क्ड',
+    work:'काम', workList:'काम लिस्ट', workListSub:'सबके लिए बाकी काम',
+    workPlaceholder:'बाकी काम जोड़ें...', noWorkItems:'कोई काम बाकी नहीं',
+    closeWork:'बंद', workAdded:'काम जोड़ा गया', workClosed:'काम बंद हुआ',
+    tomorrowShort:'कल'
   }
 };
 
@@ -1895,8 +1997,14 @@ function getDiaryDateISO(){
   const iso = todayISO();
   return d.getHours() >= 19 ? addDaysISO(iso, 1) : iso;
 }
+function isAfterDiaryCutoff(){
+  return new Date().getHours() >= 19;
+}
 function getDiaryLabel(){
   return getDiaryDateISO() === todayISO() ? t('todayDiary') : t('tomorrowDiary');
+}
+function getDiaryShortLabel(){
+  return getDiaryDateISO() === todayISO() ? t('today') : t('tomorrowShort');
 }
 function fmtPhone(p){
   if(!p) return '';
@@ -2052,12 +2160,19 @@ function goWeek(){
   if(!$('week-input').value) $('week-input').value = todayISO();
   renderWeek();
 }
+function goWork(){
+  detailFromScreen = 'work';
+  show('screen-work');
+  renderWorkList();
+  loadWorkItems(false);
+}
 function backFromDetail(){
   if(detailFromScreen === 'cases'){ show('screen-cases'); renderCases(); }
   else if(detailFromScreen === 'today'){ show('screen-today'); renderToday(); }
   else if(detailFromScreen === 'date'){ show('screen-date'); renderDateView(); }
   else if(detailFromScreen === 'week'){ show('screen-week'); renderWeek(); }
   else if(detailFromScreen === 'action'){ show('screen-action'); renderAction(); }
+  else if(detailFromScreen === 'work'){ show('screen-work'); renderWorkList(); }
   else goHome();
 }
 
@@ -2076,6 +2191,9 @@ function applyLanguage(){
   document.querySelectorAll('[data-diary-label]').forEach(el => {
     el.textContent = getDiaryLabel();
   });
+  document.querySelectorAll('[data-diary-short-label]').forEach(el => {
+    el.textContent = getDiaryShortLabel();
+  });
   const todayTitle = $('today-title');
   if(todayTitle) todayTitle.textContent = getDiaryLabel();
 }
@@ -2089,6 +2207,7 @@ function renderActiveScreen(){
   else if(active.id === 'screen-action') renderAction();
   else if(active.id === 'screen-date') renderDateView();
   else if(active.id === 'screen-week') renderWeek();
+  else if(active.id === 'screen-work') renderWorkList();
   else if(active.id === 'screen-detail' && currentDetailCaseId){
     const c = findCaseById(currentDetailCaseId);
     if(c) renderDetail(c);
@@ -2179,6 +2298,7 @@ async function loadAll(forceRefresh){
     localStorage.removeItem('cache_cases');
     localStorage.removeItem('cache_hearings');
     localStorage.removeItem('cache_staff');
+    localStorage.removeItem('cache_work_items');
     localStorage.setItem('cache_version', APP_VERSION);
   }
 
@@ -2201,15 +2321,18 @@ async function loadAll(forceRefresh){
     localStorage.setItem('cache_cases', JSON.stringify(CASES));
     localStorage.setItem('cache_hearings', JSON.stringify(HEARINGS));
     updateStats();
+    loadWorkItems(false);
     if(forceRefresh) toast('✓ Data refreshed', 'success');
   } catch (err) {
     console.error(err);
     const cc = localStorage.getItem('cache_cases');
     const ch = localStorage.getItem('cache_hearings');
     const cs = localStorage.getItem('cache_staff');
+    const cw = localStorage.getItem('cache_work_items');
     if(cc && ch){
       CASES = JSON.parse(cc); HEARINGS = JSON.parse(ch);
       if(cs) try { STAFF = JSON.parse(cs); } catch(e){}
+      if(cw) try { WORK_ITEMS = JSON.parse(cw); } catch(e){}
       syncFromHearings();
       updateStats();
       toast('Offline — showing cached data');
@@ -2287,7 +2410,7 @@ function syncFromHearings(){
 }
 
 function showLoadingStats(){
-  ['stat-total','stat-today','stat-action'].forEach(id => $(id).textContent = '—');
+  ['stat-total','stat-today','stat-action','stat-work'].forEach(id => $(id).textContent = '—');
   const homeProgress = $('home-progress');
   if(homeProgress) homeProgress.innerHTML = `<div class="daily-progress">
     <div class="row"><span>${getDiaryDateISO() === todayISO() ? t('todayProgress') : t('tomorrowProgress')}</span><span class="count">${t('loading')}</span></div>
@@ -2467,6 +2590,7 @@ function updateStats(){
   $('stat-total').textContent = CASES.length;
   const progress = getTodayProgress();
   $('stat-today').textContent = progress.total;
+  $('stat-work').textContent = WORK_ITEMS.length;
   const homeProgress = $('home-progress');
   if(homeProgress) homeProgress.innerHTML = dailyProgressHTML();
 
@@ -2494,12 +2618,18 @@ function getCasesListedToday(){
 
 function getPendingCases(){
   const todayCases = getCasesListedToday();
+  const excludeTodayListed = !isAfterDiaryCutoff();
+  const todayStart = parseISOLocal(todayISO());
+  todayStart.setHours(0,0,0,0);
   const latestByCase = {};
   HEARINGS.forEach(h => {
     const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
     if(!cid) return;
     const hd = parseDate(getField(h,'Hearing Date'));
     if(!hd) return;
+    const hearingStart = new Date(hd);
+    hearingStart.setHours(0,0,0,0);
+    if(hearingStart > todayStart) return;
     if(!latestByCase[cid] || hd > latestByCase[cid]._hd){
       latestByCase[cid] = { ...h, _hd: hd };
     }
@@ -2509,7 +2639,7 @@ function getPendingCases(){
     if(parseDate(getField(h,'Next Date'))) return;
     if(isDisposed(getField(h,'Next Date'))) return;
     const cid = String(getField(h,'Case ID')).trim().toLowerCase();
-    if(todayCases.has(cid)) return;
+    if(excludeTodayListed && todayCases.has(cid)) return;
     const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === cid);
     pending.push({ hearing: h, case: c });
   });
@@ -2579,12 +2709,9 @@ function caseCard(c){
   const courtType = getCourtType(c);
   return `
     <div class="case-card compact type-${courtType} ${favorite ? 'favorite' : ''}" data-action="open-case" data-case="${id}">
-      ${nextDate ? `<div class="next-pill">${escapeHTML(nextDate)}</div>` : ''}
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
-          ${courtTypePill(courtType)}
-          <span class="pill pill-id">${id}</span>
         </div>
         <div class="card-tools">
           <button class="card-tool note" data-action="case-note" data-case="${id}" title="${t('myNote')}">📝 ${t('note')}</button>
@@ -2594,8 +2721,8 @@ function caseCard(c){
       <h3>${title}</h3>
       <div class="meta">
         ${caseNumber ? `<div class="meta-row"><span class="lbl">${t('caseNumber')}</span><span class="val">${caseNumber}</span></div>` : ''}
-        ${section ? `<div class="meta-row"><span class="lbl">${t('section')}</span><span class="val">${section}</span></div>` : ''}
         ${court ? `<div class="meta-row"><span class="lbl">${t('court')}</span><span class="val">${court}</span></div>` : ''}
+        ${nextDate ? `<div class="meta-row"><span class="lbl">${t('next')}</span><span class="val"><span class="next-pill">${escapeHTML(nextDate)}</span></span></div>` : ''}
       </div>
     </div>
   `;
@@ -2727,9 +2854,7 @@ function diaryCard(h, type, allowUpdate){
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
-          ${courtTypePill(courtType)}
           ${updatedToday ? '<span class="pill pill-updated">UPDATED</span>' : ''}
-          <span class="pill pill-id">${escapeHTML(caseId)}</span>
         </div>
         <div class="card-tools">
           <button class="card-tool note" data-action="case-note" data-case="${escapeHTML(caseId)}" title="${t('myNote')}">📝 ${t('note')}</button>
@@ -3303,9 +3428,92 @@ function refreshVisibleScreen(){
   if($('screen-date').classList.contains('active')) renderDateView();
   if($('screen-week').classList.contains('active')) renderWeek();
   if($('screen-action').classList.contains('active')) renderAction();
+  if($('screen-work').classList.contains('active')) renderWorkList();
   if($('screen-detail').classList.contains('active')){
     const active = document.querySelector('#detail-content .detail-hero .pill-id');
     if(active) openCase(active.textContent);
+  }
+}
+
+/* ======================================
+   SHARED WORK LIST
+   ====================================== */
+async function loadWorkItems(showToast){
+  try {
+    const result = await postToScript({ action: 'getWorkItems' });
+    if(result.success){
+      WORK_ITEMS = Array.isArray(result.items) ? result.items : [];
+      localStorage.setItem('cache_work_items', JSON.stringify(WORK_ITEMS));
+      updateStats();
+      if($('screen-work').classList.contains('active')) renderWorkList();
+      if(showToast) toast('Work list refreshed', 'success');
+    }
+  } catch(err){
+    const cached = localStorage.getItem('cache_work_items');
+    if(cached) try { WORK_ITEMS = JSON.parse(cached); updateStats(); renderWorkList(); } catch(e){}
+    console.warn('Work list load failed:', err);
+  }
+}
+
+function renderWorkList(){
+  const list = $('work-list');
+  if(!list) return;
+  if(!WORK_ITEMS.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">✓</div><div class="t">${t('noWorkItems')}</div><div class="s">${t('workListSub')}</div></div>`;
+    return;
+  }
+  list.innerHTML = WORK_ITEMS.map(item => `
+    <div class="work-item">
+      <div class="body">
+        <div class="task">${escapeHTML(item.task || '')}</div>
+        <div class="meta">${escapeHTML(item.createdBy || '')}${item.timestamp ? ' · ' + escapeHTML(item.timestamp) : ''}</div>
+      </div>
+      <button class="done-btn" data-action="close-work" data-task="${escapeHTML(item.taskId || '')}">${t('closeWork')}</button>
+    </div>
+  `).join('');
+}
+
+async function submitWorkItem(){
+  const user = getCurrentUser();
+  if(!user){ toast('Please login first', 'error'); showLogin(); return; }
+  const input = $('work-input');
+  const task = (input.value || '').trim();
+  if(!task){ input.focus(); return; }
+  const btn = $('work-add-btn');
+  const oldText = btn.textContent;
+  btn.textContent = t('loading');
+  btn.disabled = true;
+  try {
+    const result = await postToScript({ action: 'addWorkItem', user, task });
+    if(result.success){
+      input.value = '';
+      toast(t('workAdded'), 'success');
+      await loadWorkItems(false);
+    } else {
+      toast('Error: ' + (result.error || 'Unknown'), 'error');
+    }
+  } catch(err){
+    toast('Network error', 'error');
+  } finally {
+    btn.textContent = oldText;
+    btn.disabled = false;
+  }
+}
+
+async function closeWorkItem(taskId){
+  const user = getCurrentUser();
+  if(!user){ toast('Please login first', 'error'); showLogin(); return; }
+  if(!taskId) return;
+  try {
+    const result = await postToScript({ action: 'closeWorkItem', user, taskId });
+    if(result.success){
+      toast(t('workClosed'), 'success');
+      await loadWorkItems(false);
+    } else {
+      toast('Error: ' + (result.error || 'Unknown'), 'error');
+    }
+  } catch(err){
+    toast('Network error', 'error');
   }
 }
 
@@ -3469,6 +3677,18 @@ document.addEventListener('click', (e) => {
     e.stopPropagation();
     const caseId = btn.dataset.case;
     if(caseId) openCaseNoteModal(caseId);
+  }
+  else if(action === 'close-work'){
+    e.preventDefault();
+    e.stopPropagation();
+    closeWorkItem(btn.dataset.task || '');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && e.target && e.target.id === 'work-input'){
+    e.preventDefault();
+    submitWorkItem();
   }
 });
 
