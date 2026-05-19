@@ -433,6 +433,66 @@ a{color:var(--primary);text-decoration:none}
 .case-card.compact .meta{gap:4px;font-size:12px}
 .case-card.compact .actions{margin-top:8px}
 .case-card.compact .btn-update{padding:9px 12px}
+.case-card.diary-compact{
+  padding:8px 10px 8px 12px;
+}
+.case-card.diary-compact .diary-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.case-card.diary-compact .diary-main{
+  flex:1;
+  min-width:0;
+}
+.case-card.diary-compact h3{
+  margin:0 0 5px;
+  font-size:16px;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.case-card.diary-compact .diary-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  max-width:100%;
+  font-size:13px;
+  line-height:1.2;
+  color:var(--on-surface-variant);
+}
+.case-card.diary-compact .diary-court{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-weight:700;
+}
+.case-card.diary-compact .diary-sep{
+  flex-shrink:0;
+  color:var(--outline);
+}
+.case-card.diary-compact .diary-next{
+  flex-shrink:0;
+  color:var(--primary);
+  font-weight:800;
+  white-space:nowrap;
+}
+.case-card.diary-compact .diary-next.pending{
+  color:var(--error);
+}
+.case-card.diary-compact .diary-status{
+  flex-shrink:0;
+  color:#69705f;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.case-card.diary-compact .card-tools{
+  align-self:center;
+}
 .case-card:active{transform:scale(0.99)}
 .case-card.urgent{
   border-left:4px solid var(--error);
@@ -2470,8 +2530,8 @@ function courtTypeLabel(type){
 }
 
 function courtTypePill(type){
-  const t = normalizeCourtType(type);
-  return `<span class="pill pill-type-${t}">${courtTypeLabel(t)}</span>`;
+  const normalizedType = normalizeCourtType(type);
+  return `<span class="pill pill-type-${normalizedType}">${courtTypeLabel(normalizedType)}</span>`;
 }
 
 function isHearingUpdatedToday(h){
@@ -2540,7 +2600,7 @@ function sortEntriesForDisplay(entries){
   });
 }
 
-function renderGroupedEntries(entries, allowUpdate){
+function renderGroupedEntries(entries, allowUpdate, compactDiaryCards){
   let html = '';
   groupEntriesByCourtType(entries).forEach(group => {
     const updated = group.entries.filter(e => isHearingUpdatedToday(e.hearing)).length;
@@ -2549,7 +2609,7 @@ function renderGroupedEntries(entries, allowUpdate){
         <div class="name">${group.label}</div>
         <div class="sub">${updated}/${group.entries.length} ${t('casesUpdated')}</div>
       </div>`;
-    group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate));
+    group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate, compactDiaryCards));
     html += `</div>`;
   });
   return html;
@@ -2712,6 +2772,8 @@ function caseCard(c){
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+          ${courtTypePill(courtType)}
+          <span class="pill pill-id">${id}</span>
         </div>
         <div class="card-tools">
           <button class="card-tool note" data-action="case-note" data-case="${id}" title="${t('myNote')}">📝 ${t('note')}</button>
@@ -2754,7 +2816,7 @@ function renderToday(){
   </div>`;
 
   html += '<div class="list">';
-  html += renderGroupedEntries(entries, true);
+  html += renderGroupedEntries(entries, true, true);
   html += '</div>';
 
   $('today-content').innerHTML = html;
@@ -2784,7 +2846,7 @@ function renderDateView(){
   </div>`;
 
   const isDiaryDate = date === getDiaryDateISO();
-  html += renderGroupedEntries(entries, isDiaryDate);
+  html += renderGroupedEntries(entries, isDiaryDate, false);
   list.innerHTML = html;
 }
 
@@ -2820,7 +2882,7 @@ function renderWeek(){
       html += `<div class="empty-row">No matters listed</div>`;
     } else {
       sortEntriesForDisplay(entries);
-      html += renderGroupedEntries(entries, isDiaryDate);
+      html += renderGroupedEntries(entries, isDiaryDate, false);
     }
     html += `</div>`;
   });
@@ -2832,7 +2894,7 @@ function renderWeek(){
    DIARY CARD (used in today/date/week)
    FIX P0-17: data attrs not inline strings
    ====================================== */
-function diaryCard(h, type, allowUpdate){
+function diaryCard(h, type, allowUpdate, compactDiaryCards){
   const caseId = String(getField(h,'Case ID')||'').trim();
   const entryId = getField(h,'Entry ID') || '';
   const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === caseId.toLowerCase());
@@ -2840,21 +2902,55 @@ function diaryCard(h, type, allowUpdate){
   const court = getField(c,'Court') || '';
   const caseNumber = getField(c,'case number') || '';
   const person = getField(h,'Person Who Brought Date') || '';
-  const nextOn = getField(h,'Next Date') ? fmtDate(getField(h,'Next Date')) : '';
+  const rawNext = getField(h,'Next Date');
+  const nextOn = rawNext ? fmtDate(rawNext) : '';
   const isHeld = type === 'held';
-  const hasNext = parseDate(getField(h,'Next Date'));
+  const hasNext = parseDate(rawNext);
   const favorite = isFavoriteCase(c);
   const courtType = getCourtType(c);
   const updatedToday = isHearingUpdatedToday(h);
 
   const cardClass = isHeld ? 'held' : 'scheduled';
 
+  if(compactDiaryCards){
+    const compactNext = nextOn || t('pending');
+    return `
+      <div class="case-card compact diary-compact ${cardClass} type-${courtType} ${updatedToday ? 'updated-today' : ''} ${favorite ? 'favorite' : ''}">
+        <div class="diary-row">
+          <div class="diary-main" data-action="open-case" data-case="${escapeHTML(caseId)}">
+            <h3>${escapeHTML(title)}</h3>
+            <div class="diary-line">
+              ${court ? `<span class="diary-court">${escapeHTML(court)}</span><span class="diary-sep">|</span>` : ''}
+              <span class="diary-next ${nextOn ? '' : 'pending'}">${escapeHTML(compactNext)}</span>
+              ${updatedToday ? '<span class="diary-status">Updated</span>' : ''}
+            </div>
+          </div>
+          <div class="card-tools">
+            <button class="card-tool note" data-action="case-note" data-case="${escapeHTML(caseId)}" title="${t('myNote')}">📝 ${t('note')}</button>
+            ${allowUpdate ? `
+              <button class="card-tool primary"
+                data-action="update-hearing"
+                data-entry="${escapeHTML(entryId)}"
+                data-case="${escapeHTML(caseId)}"
+                data-title="${escapeHTML(title)}"
+                data-last="${escapeHTML(fmtDate(getField(h,'Hearing Date')) || todayISO())}"
+                title="${isHeld && hasNext ? t('editUpdate') : t('updateHearing')}">
+                ✎
+              </button>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="case-card compact ${cardClass} type-${courtType} ${updatedToday ? 'updated-today' : ''} ${favorite ? 'favorite' : ''}">
       <div class="head">
         <div class="pills">
           ${favorite ? '<span class="pill pill-fav">STARRED</span>' : ''}
+          ${courtTypePill(courtType)}
           ${updatedToday ? '<span class="pill pill-updated">UPDATED</span>' : ''}
+          <span class="pill pill-id">${escapeHTML(caseId)}</span>
         </div>
         <div class="card-tools">
           <button class="card-tool note" data-action="case-note" data-case="${escapeHTML(caseId)}" title="${t('myNote')}">📝 ${t('note')}</button>
@@ -3257,10 +3353,11 @@ async function submitCaseNote(){
       note
     });
     if(result.success){
-      CASE_NOTE_CACHE[noteCacheKey(user, currentNoteCaseId)] = note;
+      const savedId = currentNoteCaseId;
+      CASE_NOTE_CACHE[noteCacheKey(user, savedId)] = note;
       toast('Note saved', 'success');
       closeCaseNoteModal();
-      await loadCaseNoteForDetail(currentNoteCaseId);
+      await loadCaseNoteForDetail(savedId);
     } else {
       toast('Error: ' + (result.error || 'Unknown'), 'error');
       btn.textContent = t('saveNote');
@@ -3430,8 +3527,7 @@ function refreshVisibleScreen(){
   if($('screen-action').classList.contains('active')) renderAction();
   if($('screen-work').classList.contains('active')) renderWorkList();
   if($('screen-detail').classList.contains('active')){
-    const active = document.querySelector('#detail-content .detail-hero .pill-id');
-    if(active) openCase(active.textContent);
+    if(currentDetailCaseId) openCase(currentDetailCaseId);
   }
 }
 
@@ -3466,7 +3562,7 @@ function renderWorkList(){
     <div class="work-item">
       <div class="body">
         <div class="task">${escapeHTML(item.task || '')}</div>
-        <div class="meta">${escapeHTML(item.createdBy || '')}${item.timestamp ? ' · ' + escapeHTML(item.timestamp) : ''}</div>
+        ${item.createdBy ? `<div class="meta">${escapeHTML(item.createdBy)}</div>` : ''}
       </div>
       <button class="done-btn" data-action="close-work" data-task="${escapeHTML(item.taskId || '')}">${t('closeWork')}</button>
     </div>
