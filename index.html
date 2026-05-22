@@ -1407,6 +1407,7 @@ a{color:var(--primary);text-decoration:none}
         Each chamber member has a unique 4-digit code.<br>
         Don't know yours? <a onclick="alert('Ask Chinmay for your PIN.')">Ask the admin.</a>
       </div>
+
     </div>
   </div>
 
@@ -1503,6 +1504,15 @@ a{color:var(--primary);text-decoration:none}
         <div class="text">
           <div class="t" data-i18n="workList">Work List</div>
           <div class="s" data-i18n="workListSub">Shared pending work for everyone</div>
+        </div>
+        <div class="arrow">›</div>
+      </div>
+
+      <div class="menu-card" onclick="goPerformance()">
+        <div class="icon">📊</div>
+        <div class="text">
+          <div class="t" data-i18n="performance">Performance Dashboard</div>
+          <div class="s" data-i18n="performanceSub">Staff activity &amp; case statistics</div>
         </div>
         <div class="arrow">›</div>
       </div>
@@ -1876,7 +1886,7 @@ const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBj
 const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v25';
+const APP_VERSION = 'v26';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1940,7 +1950,8 @@ const I18N = {
     session:'Session', family:'Family', lower:'Lower', unmarked:'Unmarked',
     work:'Work', workList:'Work List', workListSub:'Shared pending work for everyone',
     workPlaceholder:'Add pending work...', noWorkItems:'No pending work', closeWork:'Close',
-    workAdded:'Work item added', workClosed:'Work item closed', tomorrowShort:'Tomorrow'
+    workAdded:'Work item added', workClosed:'Work item closed', tomorrowShort:'Tomorrow',
+    performance:'Performance Dashboard', performanceSub:'Staff activity & case statistics'
   },
   hi: {
     review:'समीक्षा', add:'जोड़ें', note:'नोट', myNote:'मेरा नोट', home:'होम', today:'आज',
@@ -1964,7 +1975,8 @@ const I18N = {
     work:'काम', workList:'काम लिस्ट', workListSub:'सबके लिए बाकी काम',
     workPlaceholder:'बाकी काम जोड़ें...', noWorkItems:'कोई काम बाकी नहीं',
     closeWork:'बंद', workAdded:'काम जोड़ा गया', workClosed:'काम बंद हुआ',
-    tomorrowShort:'कल'
+    tomorrowShort:'कल',
+    performance:'प्रदर्शन डैशबोर्ड', performanceSub:'स्टाफ गतिविधि और केस आंकड़े'
   }
 };
 
@@ -2226,6 +2238,13 @@ function goWork(){
   renderWorkList();
   loadWorkItems(false);
 }
+async function goPerformance(){
+  await Promise.race([
+    logDiaryAction('Opened Performance Dashboard'),
+    new Promise(resolve => setTimeout(resolve, 1200))
+  ]);
+  window.location.href = 'https://pathakchinmay2594.github.io/performance/';
+}
 function backFromDetail(){
   if(detailFromScreen === 'cases'){ show('screen-cases'); renderCases(); }
   else if(detailFromScreen === 'today'){ show('screen-today'); renderToday(); }
@@ -2447,6 +2466,7 @@ function parseStaffRows(values){
 function syncFromHearings(){
   const latest = {};
   HEARINGS.forEach(h => {
+    if(isStaleGeneratedPlaceholder(h)) return;
     const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
     if(!cid) return;
     const hd = parseDate(getField(h,'Hearing Date'));
@@ -2667,11 +2687,9 @@ function updateStats(){
 function getCasesListedToday(){
   const today = todayISO();
   const cases = new Set();
-  HEARINGS.forEach(h => {
-    if(toISODate(getField(h,'Hearing Date')) === today || toISODate(getField(h,'Next Date')) === today){
-      const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
-      if(cid) cases.add(cid);
-    }
+  getEntriesForDate(today).forEach(e => {
+    const cid = String(getField(e.hearing,'Case ID')||'').trim().toLowerCase();
+    if(cid) cases.add(cid);
   });
   return cases;
 }
@@ -2683,6 +2701,7 @@ function getPendingCases(){
   todayStart.setHours(0,0,0,0);
   const latestByCase = {};
   HEARINGS.forEach(h => {
+    if(isStaleGeneratedPlaceholder(h)) return;
     const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
     if(!cid) return;
     const hd = parseDate(getField(h,'Hearing Date'));
@@ -2712,6 +2731,41 @@ function getPendingCases(){
   return pending;
 }
 
+function isBlankGeneratedHearing(h){
+  return !String(getField(h,'Order Summary') || '').trim() &&
+    !String(getField(h,'Next Date') || '').trim() &&
+    !String(getField(h,'Person Who Brought Date') || '').trim() &&
+    !String(getField(h,'Updated By') || '').trim();
+}
+
+function isStaleGeneratedPlaceholder(h){
+  if(!isBlankGeneratedHearing(h)) return false;
+  const cid = String(getField(h,'Case ID') || '').trim().toLowerCase();
+  const hdISO = toISODate(getField(h,'Hearing Date'));
+  if(!cid || !hdISO) return false;
+
+  const hd = parseISOLocal(hdISO);
+  const entryId = String(getField(h,'Entry ID') || '').trim().toLowerCase();
+  let latestPrior = null;
+
+  HEARINGS.forEach(other => {
+    if(other === h) return;
+    if(entryId && String(getField(other,'Entry ID') || '').trim().toLowerCase() === entryId) return;
+    if(String(getField(other,'Case ID') || '').trim().toLowerCase() !== cid) return;
+    if(isBlankGeneratedHearing(other)) return;
+    const otherISO = toISODate(getField(other,'Hearing Date'));
+    if(!otherISO) return;
+    const otherDate = parseISOLocal(otherISO);
+    if(!otherDate || otherDate >= hd) return;
+    if(!latestPrior || otherDate > latestPrior.date){
+      latestPrior = { hearing: other, date: otherDate };
+    }
+  });
+
+  if(!latestPrior) return false;
+  return toISODate(getField(latestPrior.hearing,'Next Date')) !== hdISO;
+}
+
 // FIX P1-24: shared dedupe
 function dedupePreferHeld(rawEntries){
   const byId = {};
@@ -2728,6 +2782,7 @@ function dedupePreferHeld(rawEntries){
 function getEntriesForDate(dateISO){
   const raw = [];
   HEARINGS.forEach(h => {
+    if(isStaleGeneratedPlaceholder(h)) return;
     const hdISO = toISODate(getField(h,'Hearing Date'));
     const ndISO = toISODate(getField(h,'Next Date'));
     if(hdISO === dateISO || ndISO === dateISO){
@@ -3070,6 +3125,7 @@ function renderDetail(c){
   currentDetailCaseId = getField(c,'Case ID') || '';
   const hearings = HEARINGS
     .filter(h => String(getField(h,'Case ID')).trim().toLowerCase() === cid)
+    .filter(h => !isStaleGeneratedPlaceholder(h))
     .sort((a,b) => {
       const ad = toISODate(getField(a,'Hearing Date')) || '';
       const bd = toISODate(getField(b,'Hearing Date')) || '';
