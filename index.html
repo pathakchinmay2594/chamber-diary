@@ -902,6 +902,14 @@ a{color:var(--primary);text-decoration:none}
   margin:12px 0 6px;
   color:var(--on-surface);
 }
+.detail-case-id{
+  display:inline-block;
+  margin-left:8px;
+  font-family:var(--body);
+  font-size:13px;
+  font-weight:600;
+  color:var(--on-surface-variant);
+}
 .detail-hero .court{
   font-family:var(--display);
   font-style:italic;
@@ -1003,6 +1011,18 @@ a{color:var(--primary);text-decoration:none}
   font-size:14.5px;font-weight:600;
   color:var(--primary);
   margin-bottom:6px;
+}
+.hearing .h-id{
+  display:inline-block;
+  margin-left:8px;
+  padding:2px 7px;
+  border-radius:6px;
+  background:var(--surface-high);
+  font-family:var(--body);
+  font-size:11px;
+  font-weight:600;
+  color:var(--on-surface-variant);
+  vertical-align:middle;
 }
 .hearing .h-next{
   display:inline-block;
@@ -1650,7 +1670,7 @@ a{color:var(--primary);text-decoration:none}
 <div class="modal" id="update-modal">
   <div class="modal-content">
     <h3>Update Hearing</h3>
-    <div class="modal-sub">Record what happened &amp; the next date.</div>
+    <div class="modal-sub">Record what happened and what should happen next.</div>
     <div class="form-info" id="update-info"></div>
 
     <div class="form-field">
@@ -1667,9 +1687,18 @@ a{color:var(--primary);text-decoration:none}
     </div>
 
     <div class="form-field">
+      <label>Result After Hearing</label>
+      <select id="form-outcome" onchange="toggleNextDateField()">
+        <option value="NEXT_DATE_SET">Next date fixed</option>
+        <option value="DATE_PENDING">Date not decided yet</option>
+        <option value="CLOSED">Closed / no further diary</option>
+      </select>
+    </div>
+
+    <div class="form-field" id="form-next-date-wrap">
       <label>Next Date</label>
       <input type="date" id="form-next-date">
-      <div class="field-hint">Leave blank if not yet decided.</div>
+      <div class="field-hint">A new diary listing will be made immediately for this date.</div>
     </div>
 
     <div class="form-field">
@@ -1748,7 +1777,7 @@ a{color:var(--primary);text-decoration:none}
 <div class="modal" id="add-case-modal">
   <div class="modal-content">
     <h3>Add New Case</h3>
-    <div class="modal-sub">Creates the case and its first hearing_log row.</div>
+    <div class="modal-sub">Creates the case and its first scheduled diary listing.</div>
 
     <div class="form-field">
       <label>Case Number</label>
@@ -1885,8 +1914,9 @@ const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
 const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
 const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
+const SCHEDULE_RANGE = 'diary_schedule!A1:L3000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1917,6 +1947,7 @@ let STAFF = [
    ====================================== */
 let CASES = [];
 let HEARINGS = [];
+let SCHEDULES = [];
 let currentPin = '';
 let currentUserName = '';
 let detailFromScreen = 'home';
@@ -2378,17 +2409,20 @@ async function loadAll(forceRefresh){
     localStorage.removeItem('cache_hearings');
     localStorage.removeItem('cache_staff');
     localStorage.removeItem('cache_work_items');
+    localStorage.removeItem('cache_schedules');
     localStorage.setItem('cache_version', APP_VERSION);
   }
 
   try {
-    const [casesData, hearingsData, usersData] = await Promise.all([
+    const [casesData, hearingsData, schedulesData, usersData] = await Promise.all([
       fetchSheet(CASES_RANGE),
       fetchSheet(HEARING_RANGE),
+      fetchSheet(SCHEDULE_RANGE),
       fetchSheet(USERS_RANGE)
     ]);
     CASES = parseRows(casesData);
     HEARINGS = parseRows(hearingsData);
+    SCHEDULES = parseRows(schedulesData);
     if(usersData && usersData.length > 0){
       const loaded = parseStaffRows(usersData);
       if(loaded.length > 0){
@@ -2399,6 +2433,7 @@ async function loadAll(forceRefresh){
     syncFromHearings();
     localStorage.setItem('cache_cases', JSON.stringify(CASES));
     localStorage.setItem('cache_hearings', JSON.stringify(HEARINGS));
+    localStorage.setItem('cache_schedules', JSON.stringify(SCHEDULES));
     updateStats();
     loadWorkItems(false);
     if(forceRefresh) toast('✓ Data refreshed', 'success');
@@ -2406,10 +2441,12 @@ async function loadAll(forceRefresh){
     console.error(err);
     const cc = localStorage.getItem('cache_cases');
     const ch = localStorage.getItem('cache_hearings');
+    const cd = localStorage.getItem('cache_schedules');
     const cs = localStorage.getItem('cache_staff');
     const cw = localStorage.getItem('cache_work_items');
     if(cc && ch){
       CASES = JSON.parse(cc); HEARINGS = JSON.parse(ch);
+      if(cd) try { SCHEDULES = JSON.parse(cd); } catch(e){}
       if(cs) try { STAFF = JSON.parse(cs); } catch(e){}
       if(cw) try { WORK_ITEMS = JSON.parse(cw); } catch(e){}
       syncFromHearings();
@@ -2486,6 +2523,10 @@ function syncFromHearings(){
         : isDisposed(nextDateValue) ? String(nextDateValue).trim() : '';
       c['Latest Order Summary'] = getField(l,'Order Summary') || '';
     }
+    const activeSchedule = SCHEDULES
+      .filter(s => scheduleCaseId(s).toLowerCase() === cid && scheduleStatus(s) === 'SCHEDULED')
+      .sort((a,b) => scheduleDateISO(a).localeCompare(scheduleDateISO(b)))[0];
+    if(activeSchedule) c['Current Next Date'] = scheduleDateISO(activeSchedule);
   });
 }
 
@@ -2629,7 +2670,7 @@ function renderGroupedEntries(entries, allowUpdate, compactDiaryCards){
         <div class="name">${group.label}</div>
         <div class="sub">${updated}/${group.entries.length} ${t('casesUpdated')}</div>
       </div>`;
-    group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate, compactDiaryCards));
+    group.entries.forEach(e => html += diaryCard(e.hearing, e.matchType, allowUpdate, compactDiaryCards, e.scheduleId || ''));
     html += `</div>`;
   });
   return html;
@@ -2684,6 +2725,52 @@ function updateStats(){
 /* ======================================
    PENDING / TODAY HELPERS (shared)
    ====================================== */
+function scheduleStatus(schedule){
+  return String(getField(schedule, 'Status') || '').trim().toUpperCase();
+}
+
+function scheduleId(schedule){
+  return String(getField(schedule, 'Schedule ID') || '').trim();
+}
+
+function scheduleCaseId(schedule){
+  return String(getField(schedule, 'Case ID') || '').trim();
+}
+
+function scheduleDateISO(schedule){
+  return toISODate(getField(schedule, 'Listed Date'));
+}
+
+function findHearingById(entryId){
+  const wanted = String(entryId || '').trim().toLowerCase();
+  if(!wanted) return null;
+  return HEARINGS.find(h => String(getField(h, 'Entry ID') || '').trim().toLowerCase() === wanted) || null;
+}
+
+function hearingForSchedule(schedule){
+  const completed = findHearingById(getField(schedule, 'Completed Hearing ID'));
+  if(completed) return completed;
+  return {
+    'Case ID': scheduleCaseId(schedule),
+    'Hearing Date': getField(schedule, 'Listed Date'),
+    'Entry ID': '',
+    'Order Summary': '',
+    'Next Date': '',
+    'Person Who Brought Date': '',
+    'Updated By': ''
+  };
+}
+
+function entryForSchedule(schedule){
+  const completed = scheduleStatus(schedule) === 'COMPLETED';
+  return {
+    hearing: hearingForSchedule(schedule),
+    schedule,
+    scheduleId: scheduleId(schedule),
+    matchType: completed ? 'held' : 'scheduled'
+  };
+}
+
 function getCasesListedToday(){
   const today = todayISO();
   const cases = new Set();
@@ -2695,38 +2782,62 @@ function getCasesListedToday(){
 }
 
 function getPendingCases(){
-  const todayCases = getCasesListedToday();
-  const excludeTodayListed = !isAfterDiaryCutoff();
-  const todayStart = parseISOLocal(todayISO());
-  todayStart.setHours(0,0,0,0);
-  const latestByCase = {};
-  HEARINGS.forEach(h => {
-    if(isStaleGeneratedPlaceholder(h)) return;
-    const cid = String(getField(h,'Case ID')||'').trim().toLowerCase();
+  const pending = [];
+  const trackedCases = new Set();
+  const today = todayISO();
+  const activeFutureCases = new Set(SCHEDULES
+    .filter(schedule => scheduleStatus(schedule) === 'SCHEDULED' && scheduleDateISO(schedule) > today)
+    .map(schedule => scheduleCaseId(schedule).toLowerCase()));
+  const latestCompletedByCase = {};
+  SCHEDULES.forEach(schedule => {
+    const status = scheduleStatus(schedule);
+    const listedDate = scheduleDateISO(schedule);
+    const cid = scheduleCaseId(schedule).toLowerCase();
     if(!cid) return;
-    const hd = parseDate(getField(h,'Hearing Date'));
-    if(!hd) return;
-    const hearingStart = new Date(hd);
-    hearingStart.setHours(0,0,0,0);
-    if(hearingStart > todayStart) return;
-    if(!latestByCase[cid] || hd > latestByCase[cid]._hd){
-      latestByCase[cid] = { ...h, _hd: hd };
+    if(status === 'SCHEDULED' && listedDate &&
+       (listedDate < today || (listedDate === today && isAfterDiaryCutoff()))){
+      const c = findCaseById(cid);
+      const item = entryForSchedule(schedule);
+      pending.push({ hearing: item.hearing, schedule, scheduleId: item.scheduleId, case: c });
+      trackedCases.add(cid);
+    }
+    if(status === 'COMPLETED'){
+      latestCompletedByCase[cid] = schedule;
     }
   });
-  const pending = [];
+  Object.entries(latestCompletedByCase).forEach(([cid, schedule]) => {
+    if(String(getField(schedule, 'Result') || '').trim().toUpperCase() === 'DATE_PENDING'){
+      if(trackedCases.has(cid) || activeFutureCases.has(cid)) return;
+      const c = findCaseById(cid);
+      const item = entryForSchedule(schedule);
+      pending.push({ hearing: item.hearing, schedule, scheduleId: item.scheduleId, case: c });
+      trackedCases.add(cid);
+    }
+  });
+
+  // Keep unresolved historical entries visible until they have been migrated.
+  const latestByCase = {};
+  HEARINGS.forEach(h => {
+    if(isBlankGeneratedHearing(h) || isStaleGeneratedPlaceholder(h)) return;
+    const cid = String(getField(h,'Case ID') || '').trim().toLowerCase();
+    const hd = parseDate(getField(h,'Hearing Date'));
+    if(!cid || !hd || toISODate(hd) > today) return;
+    if(!latestByCase[cid] || hd > latestByCase[cid]._hd) latestByCase[cid] = { ...h, _hd: hd };
+  });
   Object.values(latestByCase).forEach(h => {
-    if(parseDate(getField(h,'Next Date'))) return;
-    if(isDisposed(getField(h,'Next Date'))) return;
-    const cid = String(getField(h,'Case ID')).trim().toLowerCase();
-    if(excludeTodayListed && todayCases.has(cid)) return;
-    const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === cid);
-    pending.push({ hearing: h, case: c });
+    const cid = String(getField(h,'Case ID') || '').trim().toLowerCase();
+    if(trackedCases.has(cid)) return;
+    if(parseDate(getField(h,'Next Date')) || isDisposed(getField(h,'Next Date'))) return;
+    if(!isAfterDiaryCutoff() && getCasesListedToday().has(cid)) return;
+    pending.push({ hearing: h, scheduleId: '', case: findCaseById(cid) });
   });
   pending.sort((a,b) => {
     const af = isFavoriteCase(a.case);
     const bf = isFavoriteCase(b.case);
     if(af !== bf) return af ? -1 : 1;
-    return b.hearing._hd - a.hearing._hd;
+    const ad = parseDate(getField(a.hearing, 'Hearing Date')) || new Date(0);
+    const bd = parseDate(getField(b.hearing, 'Hearing Date')) || new Date(0);
+    return bd - ad;
   });
   return pending;
 }
@@ -2781,14 +2892,29 @@ function dedupePreferHeld(rawEntries){
 
 function getEntriesForDate(dateISO){
   const raw = [];
-  HEARINGS.forEach(h => {
-    if(isStaleGeneratedPlaceholder(h)) return;
-    const hdISO = toISODate(getField(h,'Hearing Date'));
-    const ndISO = toISODate(getField(h,'Next Date'));
-    if(hdISO === dateISO || ndISO === dateISO){
-      raw.push({ hearing: h, matchType: hdISO === dateISO ? 'held' : 'scheduled' });
-    }
+  const scheduledCases = new Set();
+  SCHEDULES.forEach(schedule => {
+    const status = scheduleStatus(schedule);
+    if(scheduleDateISO(schedule) !== dateISO || (status !== 'SCHEDULED' && status !== 'COMPLETED')) return;
+    const entry = entryForSchedule(schedule);
+    raw.push(entry);
+    scheduledCases.add(scheduleCaseId(schedule).toLowerCase());
   });
+  HEARINGS.forEach(h => {
+    if(isBlankGeneratedHearing(h) || isStaleGeneratedPlaceholder(h)) return;
+    const hdISO = toISODate(getField(h,'Hearing Date'));
+    const cid = String(getField(h,'Case ID') || '').trim().toLowerCase();
+    if(hdISO === dateISO && !scheduledCases.has(cid)) raw.push({ hearing: h, scheduleId:'', matchType:'held' });
+  });
+  // Transitional fallback before migration: retain the old next-date diary if no schedule data exists.
+  if(SCHEDULES.length === 0){
+    HEARINGS.forEach(h => {
+      if(isStaleGeneratedPlaceholder(h)) return;
+      if(toISODate(getField(h,'Next Date')) === dateISO){
+        raw.push({ hearing: h, scheduleId:'', matchType:'scheduled' });
+      }
+    });
+  }
   return dedupePreferHeld(raw);
 }
 
@@ -2949,7 +3075,7 @@ function renderWeek(){
    DIARY CARD (used in today/date/week)
    FIX P0-17: data attrs not inline strings
    ====================================== */
-function diaryCard(h, type, allowUpdate, compactDiaryCards){
+function diaryCard(h, type, allowUpdate, compactDiaryCards, linkedScheduleId){
   const caseId = String(getField(h,'Case ID')||'').trim();
   const entryId = getField(h,'Entry ID') || '';
   const c = CASES.find(x => String(getField(x,'Case ID')).trim().toLowerCase() === caseId.toLowerCase());
@@ -2986,6 +3112,7 @@ function diaryCard(h, type, allowUpdate, compactDiaryCards){
               <button class="card-tool primary"
                 data-action="update-hearing"
                 data-entry="${escapeHTML(entryId)}"
+                data-schedule="${escapeHTML(linkedScheduleId || '')}"
                 data-case="${escapeHTML(caseId)}"
                 data-title="${escapeHTML(title)}"
                 data-last="${escapeHTML(fmtDate(getField(h,'Hearing Date')) || todayISO())}"
@@ -3013,6 +3140,7 @@ function diaryCard(h, type, allowUpdate, compactDiaryCards){
             <button class="card-tool primary"
               data-action="update-hearing"
               data-entry="${escapeHTML(entryId)}"
+              data-schedule="${escapeHTML(linkedScheduleId || '')}"
               data-case="${escapeHTML(caseId)}"
               data-title="${escapeHTML(title)}"
               data-last="${escapeHTML(fmtDate(getField(h,'Hearing Date')) || todayISO())}"
@@ -3047,7 +3175,7 @@ function renderAction(){
       Tap any case to update what happened and schedule the next hearing.
     </div><div class="list">`;
 
-    pending.forEach(({hearing, case: c}) => {
+    pending.forEach(({hearing, case: c, scheduleId: linkedScheduleId}) => {
       const caseId = getField(c,'Case ID') || getField(hearing,'Case ID');
       const entryId = getField(hearing,'Entry ID') || '';
       const title = getField(c,'Case Title') || getField(hearing,'case title') || '(case not found)';
@@ -3084,6 +3212,7 @@ function renderAction(){
               <button class="card-tool primary"
                 data-action="update-hearing"
                 data-entry="${escapeHTML(entryId)}"
+                data-schedule="${escapeHTML(linkedScheduleId || '')}"
                 data-case="${escapeHTML(caseId)}"
                 data-title="${escapeHTML(title)}"
                 data-last="${escapeHTML(lastDate)}"
@@ -3123,9 +3252,13 @@ function openCase(id){
 function renderDetail(c){
   const cid = String(getField(c,'Case ID')).trim().toLowerCase();
   currentDetailCaseId = getField(c,'Case ID') || '';
+  const activeSchedule = SCHEDULES
+    .filter(s => scheduleCaseId(s).toLowerCase() === cid && scheduleStatus(s) === 'SCHEDULED')
+    .sort((a,b) => scheduleDateISO(a).localeCompare(scheduleDateISO(b)))[0];
+  const currentNextDate = activeSchedule ? getField(activeSchedule, 'Listed Date') : c['Current Next Date'];
   const hearings = HEARINGS
     .filter(h => String(getField(h,'Case ID')).trim().toLowerCase() === cid)
-    .filter(h => !isStaleGeneratedPlaceholder(h))
+    .filter(h => !isBlankGeneratedHearing(h) && !isStaleGeneratedPlaceholder(h))
     .sort((a,b) => {
       const ad = toISODate(getField(a,'Hearing Date')) || '';
       const bd = toISODate(getField(b,'Hearing Date')) || '';
@@ -3146,15 +3279,14 @@ function renderDetail(c){
     ['Lawyers Connected', getCaseLawyers(c)],
     ['Court Type', courtTypeLabel(getCourtType(c))],
     ['First Date', getField(c,'First Date') ? fmtDate(getField(c,'First Date')) : ''],
-    ['Current Next Date', c['Current Next Date'] ? fmtDate(c['Current Next Date']) : '', 'gold'],
+    ['Current Next Date', currentNextDate ? fmtDate(currentNextDate) : '', 'gold'],
     ['Latest Order', getField(c,'Latest Order Summary')],
     ['File Link', fileLink ? `<a href="${escapeHTML(fileLink)}" target="_blank" rel="noopener">${escapeHTML(fileLink)}</a>` : '']
   ];
 
   let html = dailyProgressHTML() + `
     <div class="detail-hero">
-      <span class="pill pill-id">${escapeHTML(getField(c,'Case ID') || '')}</span>
-      <h2>${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}</h2>
+      <h2>${escapeHTML(getField(c,'Case Title') || 'Untitled Case')}<span class="detail-case-id">(${escapeHTML(getField(c,'Case ID') || '')})</span></h2>
       <div class="court">${escapeHTML(getField(c,'Court') || '')}</div>
       <div class="detail-actions">
         <button class="btn-secondary note-primary" data-action="case-note" data-case="${escapeHTML(getField(c,'Case ID') || '')}">📝 ${t('myNote')}</button>
@@ -3179,12 +3311,13 @@ function renderDetail(c){
   } else {
     html += `<div class="timeline">`;
     hearings.forEach(h => {
+      const hearingId = getField(h,'Entry ID') || '';
       const hasNext = parseDate(getField(h,'Next Date'));
       const disposed = !hasNext && isDisposed(getField(h,'Next Date'));
       const klass = hasNext ? '' : disposed ? 'disposed' : 'no-next';
       html += `
         <div class="hearing ${klass}">
-          <div class="h-date">${escapeHTML(fmtDate(getField(h,'Hearing Date')))}</div>
+          <div class="h-date">${escapeHTML(fmtDate(getField(h,'Hearing Date')))}${hearingId ? `<span class="h-id">${escapeHTML(hearingId)}</span>` : ''}</div>
           ${hasNext
             ? `<div class="h-next">Next: ${escapeHTML(fmtDate(getField(h,'Next Date')))}</div>`
             : disposed
@@ -3430,19 +3563,27 @@ async function submitCaseNote(){
 /* ======================================
    UPDATE FORM
    ====================================== */
-function openUpdateForm(entryId, caseId, title, lastDate){
+function toggleNextDateField(){
+  const needsDate = $('form-outcome').value === 'NEXT_DATE_SET';
+  $('form-next-date-wrap').style.display = needsDate ? '' : 'none';
+  if(!needsDate) $('form-next-date').value = '';
+}
+
+function openUpdateForm(entryId, caseId, title, lastDate, linkedScheduleId){
   const user = getCurrentUser();
   if(!user){ toast('Please login first'); showLogin(); return; }
 
-  currentUpdateEntry = { entryId, caseId, title };
+  currentUpdateEntry = { entryId, caseId, title, scheduleId: linkedScheduleId || '' };
   $('update-info').innerHTML = `
     <div class="case-title">${escapeHTML(title)}</div>
     <div class="meta-line"><strong>Case</strong> ${escapeHTML(caseId)}</div>
     <div class="meta-line"><strong>Last hearing</strong> ${escapeHTML(lastDate)}</div>
   `;
   $('form-order').value = '';
+  $('form-outcome').value = 'NEXT_DATE_SET';
   $('form-next-date').value = '';
   $('form-next-date').removeAttribute('min');
+  toggleNextDateField();
 
   // Populate "Who Brought Date" dropdown from STAFF list
   const sel = $('form-person');
@@ -3474,6 +3615,7 @@ function closeUpdateForm(){
 async function submitUpdate(){
   if(!currentUpdateEntry){ toast('No entry selected'); return; }
   const orderSummary = $('form-order').value.trim();
+  const outcomeStatus = $('form-outcome').value;
   const nextDate = $('form-next-date').value;
   const person = $('form-person').value;
   const updatedBy = $('form-updatedby').value;
@@ -3481,6 +3623,8 @@ async function submitUpdate(){
   if(!orderSummary){ toast('Please enter what happened', 'error'); return; }
   if(!person){ toast('Please select who brought the date', 'error'); return; }
   if(!updatedBy){ toast('Session expired — re-login', 'error'); return; }
+
+  if(outcomeStatus === 'NEXT_DATE_SET' && !nextDate){ toast('Please select the next date', 'error'); return; }
 
   const btn = $('form-submit-btn');
   const originalText = btn.textContent;
@@ -3490,14 +3634,15 @@ async function submitUpdate(){
   const payload = {
     action: 'updateHearing',
     entryId: currentUpdateEntry.entryId,
-    orderSummary, nextDate, person, updatedBy
+    scheduleId: currentUpdateEntry.scheduleId,
+    outcomeStatus, orderSummary, nextDate, person, updatedBy
   };
 
   try {
     const result = await postToScript(payload);
     if(result.success){
       toast('✓ Saved', 'success');
-      const entryId = currentUpdateEntry.entryId || '';
+      const entryId = result.hearingEntryId || currentUpdateEntry.entryId || '';
       const caseId = currentUpdateEntry.caseId || '';
       logDiaryAction(`Edited hearing entry ${entryId} for case ${caseId}`);
       closeUpdateForm();
@@ -3809,7 +3954,8 @@ document.addEventListener('click', (e) => {
       btn.dataset.entry || '',
       btn.dataset.case || '',
       btn.dataset.title || '',
-      btn.dataset.last || ''
+      btn.dataset.last || '',
+      btn.dataset.schedule || ''
     );
   }
   else if(action === 'toggle-favorite'){
