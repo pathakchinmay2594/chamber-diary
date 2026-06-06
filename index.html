@@ -10,6 +10,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23fbf9f5' rx='20'/%3E%3Ctext x='50' y='65' font-size='55' text-anchor='middle' fill='%2355624c'%3E%E2%9A%96%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://sheets.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -1612,7 +1614,7 @@ a{color:var(--primary);text-decoration:none}
       <button class="header-review primary" onclick="openAddCaseModal()" data-i18n="add">Add</button>
     </div>
     <div class="search-wrap">
-      <input class="search-input" id="search-input" placeholder="Search title, client, court, ID..." data-i18n-placeholder="searchPlaceholder" oninput="renderCases()">
+      <input class="search-input" id="search-input" placeholder="Search title, client, court, ID..." data-i18n-placeholder="searchPlaceholder" oninput="queueCaseSearch()">
     </div>
     <div id="cases-list" class="list"></div>
   </div>
@@ -1909,14 +1911,13 @@ a{color:var(--primary);text-decoration:none}
 /* ======================================
    CONFIG
    ====================================== */
-const SHEET_ID = '1lHqSC2J8CcyRxBrkOPmXSPu--lfG_1DsjYH0NRPDfi8';
-const API_KEY = 'AIzaSyCQMA7vIWaGxBiTewc38tjDwtqlAsOACII';
-const UPDATER_URL = 'https://script.google.com/macros/s/AKfycbyGXJAGtdLABDZrfEBjH0jXyRDyYH4Uj4dQlESdcqOV-5mEVYS-cuh67kDMoLKoQ7LV/exec';
+const WORKER_URL = 'https://chamber-client-api.pathakchinmay2594.workers.dev';
+const SESSION_KEY = 'chamberStaffSession';
 const CASES_RANGE = 'cases_master!A1:N1000';
 const HEARING_RANGE = 'hearing_log!A1:H1000';
 const SCHEDULE_RANGE = 'diary_schedule!A1:L3000';
 const USERS_RANGE = 'users!A1:C100';
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 
 /* ======================================
    STAFF (PIN -> Name)
@@ -1958,6 +1959,8 @@ let currentDetailCaseId = '';
 let CASE_NOTE_CACHE = {};
 let WORK_ITEMS = [];
 let APP_LANG = localStorage.getItem('chamber_lang') || 'en';
+let usersLoadPromise = null;
+let caseSearchTimer = null;
 
 const I18N = {
   en: {
@@ -2188,21 +2191,33 @@ function updatePinDots(){
   });
 }
 
-function checkPIN(){
-  const userName = findUserByPin(currentPin);
-  if(userName){
-    setCurrentUser(userName);
-    setTimeout(() => {
-      $('screen-login').classList.remove('active');
-      show('screen-home');
-      updateGreeting();
-      showLoadingStats();
-      logDiaryAction('Opened diary');
-      loadAll();
-    }, 200);
-  } else {
+async function checkPIN(){
+  try {
+    const res = await fetch(`${WORKER_URL}/api/staff/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: currentPin })
+    });
+    const result = await res.json();
+    if(result.ok && result.token){
+      saveSessionToken(result.token, result.user);
+      setCurrentUser(result.user);
+      setTimeout(() => {
+        $('screen-login').classList.remove('active');
+        show('screen-home');
+        updateGreeting();
+        showLoadingStats();
+        logDiaryAction('Opened diary');
+        loadAll();
+      }, 200);
+    } else {
+      document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));
+      toast('Invalid PIN', 'error');
+      setTimeout(()=>{ currentPin = ''; updatePinDots(); }, 600);
+    }
+  } catch(err) {
     document.querySelectorAll('#pin-dots .pin-dot').forEach(d=>d.classList.add('error'));
-    toast('Invalid PIN', 'error'); // FIX P1-13
+    toast('Login failed — check connection', 'error');
     setTimeout(()=>{ currentPin = ''; updatePinDots(); }, 600);
   }
 }
@@ -2401,8 +2416,29 @@ async function loadUsers(){
   }
 }
 
+function restoreCachedData(){
+  const cc = localStorage.getItem('cache_cases');
+  const ch = localStorage.getItem('cache_hearings');
+  if(!cc || !ch) return false;
+  try {
+    CASES = JSON.parse(cc);
+    HEARINGS = JSON.parse(ch);
+    const cd = localStorage.getItem('cache_schedules');
+    const cs = localStorage.getItem('cache_staff');
+    const cw = localStorage.getItem('cache_work_items');
+    SCHEDULES = cd ? JSON.parse(cd) : [];
+    if(cs) STAFF = JSON.parse(cs);
+    if(cw) WORK_ITEMS = JSON.parse(cw);
+    syncFromHearings();
+    renderActiveScreen();
+    return true;
+  } catch(err) {
+    console.warn('Could not restore cached diary data:', err.message);
+    return false;
+  }
+}
+
 async function loadAll(forceRefresh){
-  showLoadingStats();
   const cachedVer = localStorage.getItem('cache_version');
   if(cachedVer !== APP_VERSION){
     localStorage.removeItem('cache_cases');
@@ -2413,12 +2449,13 @@ async function loadAll(forceRefresh){
     localStorage.setItem('cache_version', APP_VERSION);
   }
 
+  const firstOpen = CASES.length === 0 && HEARINGS.length === 0;
+  const hasCachedData = firstOpen && !forceRefresh && restoreCachedData();
+  if(firstOpen && !hasCachedData) showLoadingStats();
+
   try {
-    const [casesData, hearingsData, schedulesData, usersData] = await Promise.all([
-      fetchSheet(CASES_RANGE),
-      fetchSheet(HEARING_RANGE),
-      fetchSheet(SCHEDULE_RANGE),
-      fetchSheet(USERS_RANGE)
+    const [casesData, hearingsData, schedulesData, usersData] = await fetchSheets([
+      CASES_RANGE, HEARING_RANGE, SCHEDULE_RANGE, USERS_RANGE
     ]);
     CASES = parseRows(casesData);
     HEARINGS = parseRows(hearingsData);
@@ -2434,7 +2471,7 @@ async function loadAll(forceRefresh){
     localStorage.setItem('cache_cases', JSON.stringify(CASES));
     localStorage.setItem('cache_hearings', JSON.stringify(HEARINGS));
     localStorage.setItem('cache_schedules', JSON.stringify(SCHEDULES));
-    updateStats();
+    renderActiveScreen();
     loadWorkItems(false);
     if(forceRefresh) toast('✓ Data refreshed', 'success');
   } catch (err) {
@@ -2458,16 +2495,44 @@ async function loadAll(forceRefresh){
   }
 }
 
+function getSessionToken(){
+  return localStorage.getItem(SESSION_KEY) || '';
+}
+
+function saveSessionToken(token, user){
+  localStorage.setItem(SESSION_KEY, token);
+  localStorage.setItem(SESSION_KEY + '_user', user);
+}
+
+function clearSessionToken(){
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY + '_user');
+}
+
 async function fetchSheet(range){
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
-  const res = await fetch(url, {cache: 'no-store'});
+  return (await fetchSheets([range]))[0];
+}
+
+async function fetchSheets(ranges){
+  const token = getSessionToken();
+  const res = await fetch(`${WORKER_URL}/api/staff/data`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, ranges })
+  });
   if(!res.ok){
     let detail = '';
-    try { const j = await res.json(); detail = j.error?.message || ''; } catch(e){}
+    try { const j = await res.json(); detail = j.message || ''; } catch(e){}
+    if(res.status === 400 && detail.includes('Session')) {
+      clearSessionToken();
+      showLogin();
+      throw new Error('Session expired. Please log in again.');
+    }
     throw new Error(`Sheet load failed: ${res.status}${detail ? ' - ' + detail : ''}`);
   }
-  const data = await res.json();
-  return data.values || [];
+  const result = await res.json();
+  if(!result.ok) throw new Error(result.message || 'Failed to load data.');
+  return result.data;
 }
 
 function parseRows(values){
@@ -2936,6 +3001,11 @@ function renderCases(){
     ? `<div class="date-header">Favourite Cases<span class="small">${favCount} starred ${favCount===1?'case':'cases'} shown first</span></div>`
     : '';
   list.innerHTML = dailyProgressHTML() + header + filtered.map(c => caseCard(c)).join('');
+}
+
+function queueCaseSearch(){
+  clearTimeout(caseSearchTimer);
+  caseSearchTimer = setTimeout(renderCases, 100);
 }
 
 function caseCard(c){
@@ -3666,13 +3736,20 @@ async function submitUpdate(){
 }
 
 async function postToScript(payload){
-  const res = await fetch(UPDATER_URL, {
+  const token = getSessionToken();
+  const res = await fetch(`${WORKER_URL}/api/staff/action`, {
     method: 'POST',
-    mode: 'cors',
-    cache: 'no-cache',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, token })
   });
+  if(!res.ok && res.status === 400){
+    const j = await res.json().catch(() => ({}));
+    if((j.message || '').includes('Session')){
+      clearSessionToken();
+      showLogin();
+      throw new Error('Session expired. Please log in again.');
+    }
+  }
   return await res.json();
 }
 
@@ -4004,19 +4081,4 @@ localStorage.removeItem('chamber_user');
 sessionStorage.removeItem('chamber_user');
 
 if(getCurrentUser()){
-  show('screen-home');
-  updateGreeting();
-  logDiaryAction('Opened diary');
-  loadAll();
-} else {
-  // Load users before showing login so PINs are fresh
-  loadUsers().then(() => showLogin());
-}
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-  if('caches' in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-}
-</script>
-</body>
-</html>
+  show('screen-
