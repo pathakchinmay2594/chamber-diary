@@ -2673,7 +2673,7 @@ function isHearingUpdatedToday(h){
   return !!(
     String(getField(h,'Order Summary') || '').trim() ||
     String(getField(h,'Person Who Brought Date') || '').trim() ||
-    String(getField(h,'Updated By') || '').trim()
+    String(getField(h,'Updated By') || getField(h,'who updated') || '').trim()
   );
 }
 
@@ -2821,8 +2821,25 @@ function findHearingById(entryId){
 }
 
 function hearingForSchedule(schedule){
-  const completed = findHearingById(getField(schedule, 'Completed Hearing ID'));
-  if(completed) return completed;
+  // Try Entry ID lookup first (works when hearing_log has Entry ID column)
+  const completedId = getField(schedule, 'Completed Hearing ID');
+  if(completedId){
+    const found = findHearingById(completedId);
+    if(found) return found;
+  }
+  // Fallback: match by Case ID + Listed Date when hearing_log has no Entry ID column
+  if(scheduleStatus(schedule) === 'COMPLETED'){
+    const cid = scheduleCaseId(schedule).toLowerCase();
+    const dateISO = scheduleDateISO(schedule);
+    const byDate = HEARINGS.find(h =>
+      toISODate(getField(h,'Hearing Date')) === dateISO &&
+      String(getField(h,'Case ID')||'').trim().toLowerCase() === cid &&
+      !!(String(getField(h,'Order Summary')||'').trim() ||
+         String(getField(h,'Person Who Brought Date')||'').trim() ||
+         String(getField(h,'who updated')||'').trim())
+    );
+    if(byDate) return byDate;
+  }
   return {
     'Case ID': scheduleCaseId(schedule),
     'Hearing Date': getField(schedule, 'Listed Date'),
@@ -2830,7 +2847,8 @@ function hearingForSchedule(schedule){
     'Order Summary': '',
     'Next Date': '',
     'Person Who Brought Date': '',
-    'Updated By': ''
+    'Updated By': '',
+    'who updated': ''
   };
 }
 
