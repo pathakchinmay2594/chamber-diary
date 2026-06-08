@@ -4088,4 +4088,19 @@ localStorage.removeItem('chamber_user');
 sessionStorage.removeItem('chamber_user');
 
 if(getCurrentUser()){
-  show('scr
+  show('screen-home');
+  updateGreeting();
+  logDiaryAction('Opened diary');
+  loadAll();
+} else {
+  // Load users before showing login so PINs are fresh
+  loadUsers().then(() => showLogin());
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+  if('caches' in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+}
+</script>
+</body>
+</html>
