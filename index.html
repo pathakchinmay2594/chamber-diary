@@ -3722,14 +3722,41 @@ async function submitUpdate(){
       toast('✓ Saved', 'success');
       const entryId = result.hearingEntryId || currentUpdateEntry.entryId || '';
       const caseId = currentUpdateEntry.caseId || '';
+      const schedId = currentUpdateEntry.scheduleId || '';
       logDiaryAction(`Edited hearing entry ${entryId} for case ${caseId}`);
       closeUpdateForm();
-      await loadAll(false);
-      // re-render whichever screen is visible
+      // Optimistic update: Apps Script writes can take 1-2s to appear via Sheets API.
+      // Update HEARINGS + SCHEDULES in memory immediately so the UI reflects the change
+      // without waiting for sheet propagation. Background loadAll syncs after delay.
+      const today = getDiaryDateISO();
+      const optimisticHearing = {
+        'Entry ID': entryId, 'entry id': entryId, entryid: entryId,
+        'Case ID': caseId, 'case id': caseId, caseid: caseId,
+        'Hearing Date': today, 'hearing date': today, hearingdate: today,
+        'Order Summary': orderSummary, 'order summary': orderSummary, ordersummary: orderSummary,
+        'Person Who Brought Date': person, 'person who brought date': person, personwhobroughtdate: person,
+        'Updated By': updatedBy, 'updated by': updatedBy, updatedby: updatedBy,
+        'Next Date': nextDate || '', 'next date': nextDate || '', nextdate: nextDate || ''
+      };
+      if(entryId){
+        const hIdx = HEARINGS.findIndex(h => String(getField(h,'Entry ID')||'').trim() === entryId);
+        if(hIdx >= 0) HEARINGS[hIdx] = { ...HEARINGS[hIdx], ...optimisticHearing };
+        else HEARINGS.push(optimisticHearing);
+      }
+      if(schedId){
+        const sIdx = SCHEDULES.findIndex(s => scheduleId(s) === schedId);
+        if(sIdx >= 0) SCHEDULES[sIdx] = { ...SCHEDULES[sIdx],
+          'Status': 'COMPLETED', status: 'COMPLETED',
+          'Completed Hearing ID': entryId, 'completed hearing id': entryId, completedHearingID: entryId
+        };
+      }
+      // Re-render immediately with optimistic data
       if($('screen-action').classList.contains('active')) renderAction();
       if($('screen-today').classList.contains('active')) renderToday();
       if($('screen-date').classList.contains('active')) renderDateView();
       if($('screen-week').classList.contains('active')) renderWeek();
+      // Background sync after sheet propagation delay
+      setTimeout(() => loadAll(false), 2000);
     } else {
       toast('Error: ' + (result.error || 'Unknown'), 'error');
       btn.textContent = originalText;
